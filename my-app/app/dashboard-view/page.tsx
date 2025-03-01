@@ -16,29 +16,46 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <h1 className="text-3xl font-bold tracking-tight">PLACEHOLDER NAME Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column - Recent Sales */}
         <Card className="col-span-1 h-full">
           <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-            <CardDescription>You made 265 sales this month.</CardDescription>
+            <CardTitle>Customer Assistance</CardTitle>
+            <CardDescription className="text-[#B46879]">{customers.filter(sale => sale.status === "incomplete").length} customer(s) need assistance</CardDescription>
+            <CardDescription className="text-[#B29F5C]">{customers.filter(sale => sale.status === "pending").length} customer(s) is recieving assistance</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {recentSales.map((sale, index) => (
-                <div key={index} className="flex items-center">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={sale.avatar} alt="Avatar" />
-                    <AvatarFallback>{sale.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium leading-none">{sale.name}</p>
-                    <p className="text-sm text-muted-foreground">{sale.email}</p>
+              {customers
+                .sort((a, b) => {
+                  const statusOrder = { incomplete: 1, pending: 2, complete: 3 }
+                  return statusOrder[a.status] - statusOrder[b.status]
+                //   this isnt actually an eror
+                })
+                .map((sale, index) => (
+                  <div key={index} className="flex items-center">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Avatar" />
+                      <AvatarFallback>{sale.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="ml-4 space-y-1">
+                      <p className="text-sm font-medium leading-none">{sale.name}</p>
+                      <p className="text-sm text-muted-foreground">{sale.email}</p>
+                    </div>
+                    <div
+                      className={`ml-auto font-medium ${
+                        sale.status === "incomplete"
+                          ? "text-red-500"
+                          : sale.status === "pending"
+                          ? "text-yellow-500"
+                          : "text-green-500"
+                      }`}
+                    >
+                      {sale.status}
+                    </div>
                   </div>
-                  <div className="ml-auto font-medium">+${sale.amount}</div>
-                </div>
-              ))}
+                ))}
             </div>
           </CardContent>
         </Card>
@@ -48,12 +65,18 @@ export default function Dashboard() {
           {/* Number Block 1 */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Customers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$45,231.89</div>
-              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+              <div className="text-2xl font-bold">{customers.length}</div>
+              <p className="text-xs text-[#B46879]">
+                {`${(
+                  (customers.filter((sale) => sale.status === "incomplete" || sale.status === "pending").length /
+                    customers.length) *
+                  100
+                ).toFixed(0)}% need help`}
+              </p>
             </CardContent>
           </Card>
 
@@ -76,18 +99,6 @@ export default function Dashboard() {
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Number Block 2 */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+2,350</div>
-              <p className="text-xs text-muted-foreground">+180.1% from last month</p>
             </CardContent>
           </Card>
         </div>
@@ -138,37 +149,38 @@ export default function Dashboard() {
   )
 }
 
-// Sample data for the components
-const recentSales = [
+const customers = [
   {
+    //this info needed for dashboard
     name: "Olivia Martin",
     email: "olivia.martin@email.com",
-    amount: 1999,
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: "complete",
+    date:"",
+    //this info needed for individual
+    chatlog:"",
+    summary:"",
+    age:"",
+    sex:"",
   },
   {
     name: "Jackson Lee",
     email: "jackson.lee@email.com",
-    amount: 1139,
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: "incomplete"
   },
   {
     name: "Isabella Nguyen",
     email: "isabella.nguyen@email.com",
-    amount: 2499,
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: "incomplete"
   },
   {
     name: "William Kim",
     email: "will.kim@email.com",
-    amount: 499,
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: "pending"
   },
   {
     name: "Sofia Davis",
     email: "sofia.davis@email.com",
-    amount: 899,
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: "complete"
   },
 ]
 
