@@ -45,7 +45,7 @@ const callHistory = [
 export default function DashboardPage() {
   // Function to determine sender based on message ID
   const getSender = (messageId) => {
-    return messageId % 2 === 1 ? "Customer Service Bot" : userData.name
+    return messageId % 2 === 1 ? "Ready Set Assistant" : userData.name
   }
 
   return (
@@ -136,8 +136,8 @@ export default function DashboardPage() {
       {/* Right Column - Call History */}
       <div className="flex-1 flex flex-col border-l">
         <div className="border-b p-4">
-          <h2 className="text-lg font-semibold">Customer Service AI</h2>
-          <p className="text-sm text-muted-foreground">Customer call history</p>
+          <h2 className="text-lg font-semibold">Customer Service Call History</h2>
+          {/* <p className="text-sm text-muted-foreground">Customer call history</p> */}
         </div>
 
         <div className="flex-1 overflow-auto p-4">
@@ -159,7 +159,11 @@ export default function DashboardPage() {
                     }`}
                   >
                     <Avatar className="h-8 w-8">
+                      {isCustomer ? (
                       <AvatarFallback>{sender[0]}</AvatarFallback>
+                      ) : (
+                      <AvatarImage src="./rsi_logo.png" alt={sender} />
+                      )}
                     </Avatar>
                     <div
                       className={`mx-2 rounded-lg p-4 ${
