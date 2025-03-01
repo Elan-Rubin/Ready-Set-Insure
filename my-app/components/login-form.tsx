@@ -48,12 +48,12 @@ export function LoginForm({
               <Button type="submit" className="w-full">
                 Register
               </Button>
-              <Button asChild className="w-full">
-                <Link href="/customer-view">dashboard-view</Link>
+              {/* <Button asChild className="w-full">
+                <Link href="/dashboard-view">dashboard-view</Link>
               </Button>
               <Button asChild className="w-full">
                 <Link href="/customer-view">customer-view</Link>
-              </Button>
+              </Button> */}
             </div>
           </form>
           <div className="relative hidden bg-muted md:block">
