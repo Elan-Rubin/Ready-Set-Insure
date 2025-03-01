@@ -1,123 +1,84 @@
 import requests
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
 # Your Vapi API Authorization token
 auth_token = os.environ['VITE_VAPI_API_KEY']
-# The Phone Number ID, and the Customer details for the call
+# The Phone Number ID
 phone_number_id = os.environ['TWILIO_PHONE_ID']
-customer_number = "+18888963799"
 
 headers = {
     'Authorization': f'Bearer {auth_token}',
     'Content-Type': 'application/json',
 }
 
-# Your Vapi API Authorization token
-
-headers = {
-    'Authorization': f'Bearer {auth_token}',
-    'Content-Type': 'application/json',
-}
-# Create the data payload for the API request
-data = {
-    'assistantId': os.environ['VITE_ASSISTANT_ID'],
-    'phoneNumberId': phone_number_id,
-    'customer': {
-        'number': customer_number,
-    },
-}
-
-def get_last_call():
-    # Make the POST request to Vapi to create the phone call
-    response = requests.get(
-        f'https://api.vapi.ai/call', headers=headers, json=data)
-
-    if response.status_code == 200:
-        print('assistant retrieved successfully')
-        res = response.json()
-        db_schema = '''
-        id
-    assistantId
-    phoneNumberId
-    type
-    startedAt
-    endedAt
-    transcript
-    recordingUrl
-    summary
-    createdAt
-    updatedAt
-    orgId
-    cost
-    customer
-    status
-    endedReason
-    messages
-    stereoRecordingUrl
-    costBreakdown
-    phoneCallProvider
-    phoneCallProviderId
-    phoneCallTransport
-    analysis
-    artifact
-    costs
-    monitor
-    transport
-    '''
-        return res[0]
-        # for i in res:
-        #     print(i['id'])
-        #     try:
-        #         print(i['transcript'])
-        #     except:
-        #         pass
-    else:
-        print('Failed to create call')
-        print(response.text)
-
-print((get_last_call()))
-
-
-def extract_confirmed_policy_number():
+def extract_policy_number(call_data):
     """
-    Extracts the confirmed policy number from the agent's confirmation message.
-    It looks for a message that says something like:
-    "You provided the policy number 12341234. Is that correct?"
+    Extract the insurance policy number from the call data.
+    This function checks multiple possible locations where the policy number might be stored.
     """
-    last_call = get_last_call()
-    if not last_call:
-        return None
-
-    # First, check if the agent confirmation is present in the 'messages' array.
-    messages = last_call.get("messages", [])
-    confirmation_text = None
-    for msg in messages:
-        # Check for a bot (agent) message that contains confirmation language
-        if msg.get("role") == "bot":
-            text = msg.get("message", "")
-            if "provided the policy number" in text.lower():
-                confirmation_text = text
-                break
-
-    # If not found in messages, fallback to searching the full transcript.
-    if not confirmation_text:
-        transcript = last_call.get("transcript", "")
-        # Look for the pattern "You provided the policy number ..." in transcript.
-        match = re.search(r'you provided the policy number\s*([\d\s]+)', transcript, re.IGNORECASE)
-        if match:
-            confirmation_text = match.group(0)
-
-    if confirmation_text:
-        # Use regex to extract the number from the confirmation text.
-        match = re.search(r'policy number\s*([\d\s]+)', confirmation_text, re.IGNORECASE)
-        if match:
-            confirmed_policy = match.group(1).strip().replace(" ", "")
-            return confirmed_policy
+    # Method 1: Check in the structured data analysis if available
+    if 'analysis' in call_data and 'structuredData' in call_data['analysis']:
+        policy_number = call_data['analysis']['structuredData'].get('policy_number')
+        if policy_number:
+            return policy_number
+    
+    # Method 2: Check in tool calls if available
+    if 'messages' in call_data:
+        for message in call_data['messages']:
+            if message.get('role') == 'tool_calls' and 'toolCalls' in message:
+                for tool_call in message['toolCalls']:
+                    if tool_call.get('type') == 'function' and tool_call['function'].get('name') == 'confirmUser':
+                        # Extract policy number from arguments (assuming it's JSON)
+                        import json
+                        try:
+                            args = json.loads(tool_call['function']['arguments'])
+                            if 'policy_number' in args:
+                                return args['policy_number']
+                        except:
+                            pass
+    
+    # Method 3: Parse from transcript as fallback
+    if 'transcript' in call_data:
+        # Looking for patterns like "Insurance number is 1 2 3 4 5 6 7 8"
+        matches = re.search(r"Insurance number is\s+([0-9\s]+)", call_data['transcript'])
+        if matches:
+            # Remove spaces and return the number
+            return matches.group(1).replace(" ", "")
+    
+    # If no policy number found
     return None
 
-def get_policy_number_json():
-    confirmed_policy = extract_confirmed_policy_number()
-    result = {"confirmed_policy_number": confirmed_policy} if confirmed_policy else {"confirmed_policy_number": "Not found"}
-    return json.dumps(result, indent=2)
+def get_last_call():
+    # Make the GET request to Vapi to retrieve the latest call
+    response = requests.get('https://api.vapi.ai/call', headers=headers)
+
+    if response.status_code == 200:
+        print('Calls retrieved successfully')
+        calls = response.json()
+        if calls and len(calls) > 0:
+            # Return the most recent call
+            return calls[0]
+        else:
+            print('No calls found')
+            return None
+    else:
+        print('Failed to retrieve calls')
+        print(response.text)
+        return None
+
+def main():
+    call_data = get_last_call()
+    if call_data:
+        policy_number = extract_policy_number(call_data)
+        if policy_number:
+            print(f"Insurance Policy Number: {policy_number}")
+        else:
+            print("No policy number found in the call data")
+    else:
+        print("Failed to retrieve call data")
+
+if __name__ == "__main__":
+    main()
