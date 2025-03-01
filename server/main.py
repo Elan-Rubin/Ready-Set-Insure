@@ -100,42 +100,53 @@ The password is stored in plain text in the database.
 #User Signup - Store plain text password in DB :: For Clients
 @app.route("/SignUpClient", methods=["POST"])
 def SignUpClient():
-
     '''
     Sample Request:
     {
-        "username": "Jane Doe",
-        "DOB": "1990-01-01",
-        "policy_number": "12345678",
-        "email": "janedoe@gmail.com",
-        "password": "janedoe"
+        "name": "Olivia Martin",
+        "email": "olivia.martin@email.com",
+        "status": "complete",
+        "date": "2025-03-03",
+        "chatlog": "",
+        "summary": "",
+        "dob": "1990-01-01",
+        "sex": "Male",
+        "phone": "555-555-5555",
+        "policy_number": "12345678"
     }
     '''
     try:
         data = request.json
-        username = data["username"]
-        dob = data["DOB"]
-        policy_number = data["policy_number"]
-        email = data["email"]
-        password = data["password"]
+
+        # Extracting new fields from request
+        name = data.get("name")
+        dob = data.get("dob")
+        policy_number = data.get("policy_number")
+        email = data.get("email")
+        phone = data.get("phone")
+        sex = data.get("sex", "Unknown")  # Default to "Unknown" if not provided
+        status = data.get("status", "incomplete")  # Default to "incomplete"
+        date = data.get("date")
+        chatlog = data.get("chatlog", "")
+        summary = data.get("summary", "")
 
         # Check if policy number exists
         existing_policy = mongo.db.clients.find_one({"policy_number": policy_number})
         if existing_policy:
             return jsonify({"error": "Policy number already exists"}), 400
 
-        # Check if a user with the same username, email, and DOB exists
-        existing_user = mongo.db.clients.find_one({"username": username, "email": email, "dob": dob})
-        if existing_user:
-            return jsonify({"error": "User with this username, email, and DOB already exists"}), 400
-
         # Insert user into the database
         mongo.db.clients.insert_one({
-            "username": username,
+            "name": name,
             "dob": dob,
             "policy_number": policy_number,
             "email": email,
-            "password": password
+            "phone": phone,
+            "sex": sex,
+            "status": status,
+            "date": date,
+            "chatlog": chatlog,
+            "summary": summary
         })
 
         return jsonify({"message": "User registered successfully"}), 201
@@ -177,11 +188,11 @@ def UpdateClientStatus():
         return jsonify({"error": f"Failed to update status: {str(e)}"}), 500
     
 
-@app.route("/GetIncompleteClients", methods=["GET"])
-def GetIncompleteClients():
+@app.route("/GetAllClients", methods=["GET"])
+def GetAllClients():
     try:
-        # Query for all users with status "incomplete"
-        users = mongo.db.clients.find({"status": "incomplete"}, {"password": 0})  # Excludes password field
+        # Query for all users (excluding password field for security)
+        users = mongo.db.clients.find({}, {"password": 0})  
 
         # Convert MongoDB cursor to a list of dictionaries
         users_list = list(users)
@@ -206,26 +217,27 @@ This is the normal user confirmation process
 def confirmUser():
     try:
         data = request.json
-        dob = data["DOB"]
-        policy_number = str(data["policy_number"]) 
-        email = data["email"]
+        policy_number = str(data.get("policy_number"))
 
-        # Check if user exists
-        existing_user = mongo.db.clients.find_one({
-            "email": email,
-            "dob": dob,
-            "policy_number": policy_number  # Ensure key matches DB
-        })
+        # Check if user exists based on policy number only
+        existing_user = mongo.db.clients.find_one({"policy_number": policy_number})
 
         if existing_user:
-            print(f"User Found: {existing_user}")  
-            return jsonify({"message": "User exists"}), 200
+            # Remove sensitive information
+            del existing_user['_id']
+            return jsonify({
+                "message": "Policy found",
+                "has_active_policy": True,
+                "user_data": existing_user
+            }), 200
 
-        print("User Not Found")  
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({
+            "message": "Policy not found",
+            "has_active_policy": False
+        }), 404
 
     except Exception as e:
-        return jsonify({"error": f"User confirmation failed: {str(e)}"}), 500
+        return jsonify({"error": f"Policy confirmation failed: {str(e)}"}), 500
 
 
 
