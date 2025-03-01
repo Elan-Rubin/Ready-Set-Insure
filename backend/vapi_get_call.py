@@ -29,48 +29,52 @@ data = {
     },
 }
 
-# Make the POST request to Vapi to create the phone call
-response = requests.get(
-    f'https://api.vapi.ai/call', headers=headers, json=data)
+def get_last_call():
+    # Make the POST request to Vapi to create the phone call
+    response = requests.get(
+        f'https://api.vapi.ai/call', headers=headers, json=data)
 
-if response.status_code == 200:
-    print('assistant retrieved successfully')
-    res = response.json()
-    db_schema = '''
-    id
-assistantId
-phoneNumberId
-type
-startedAt
-endedAt
-transcript
-recordingUrl
-summary
-createdAt
-updatedAt
-orgId
-cost
-customer
-status
-endedReason
-messages
-stereoRecordingUrl
-costBreakdown
-phoneCallProvider
-phoneCallProviderId
-phoneCallTransport
-analysis
-artifact
-costs
-monitor
-transport
-'''
-    for i in res:
-        print(i['id'])
-        try:
-            print(i['transcript'])
-        except:
-            pass
-else:
-    print('Failed to create call')
-    print(response.text)
+    if response.status_code == 200:
+        print('assistant retrieved successfully')
+        res = response.json()
+        db_schema = '''
+        id
+    assistantId
+    phoneNumberId
+    type
+    startedAt
+    endedAt
+    transcript
+    recordingUrl
+    summary
+    createdAt
+    updatedAt
+    orgId
+    cost
+    customer
+    status
+    endedReason
+    messages
+    stereoRecordingUrl
+    costBreakdown
+    phoneCallProvider
+    phoneCallProviderId
+    phoneCallTransport
+    analysis
+    artifact
+    costs
+    monitor
+    transport
+    '''
+        return res[0]
+        # for i in res:
+        #     print(i['id'])
+        #     try:
+        #         print(i['transcript'])
+        #     except:
+        #         pass
+    else:
+        print('Failed to create call')
+        print(response.text)
+
+print((get_last_call()))
