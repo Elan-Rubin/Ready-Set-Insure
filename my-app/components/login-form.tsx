@@ -48,7 +48,7 @@ export function LoginForm({
 
       if (response.ok) {
         setMessage(`${action === "register" ? "User registered" : "Login successful"}! Redirecting...`);
-        setTimeout(() => router.push("/customer-view"), 2000); // Redirect after 2 sec
+        setTimeout(() => router.push("/dashboard-view"), 2000); // Redirect after 2 sec
       } else {
         setMessage(data.error || "Operation failed");
       }
