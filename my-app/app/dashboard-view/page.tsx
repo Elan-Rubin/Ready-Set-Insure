@@ -236,8 +236,9 @@ const customers = [
 
     chatlog: "",
     summary: "",
-    age: "",
-    sex: "",
+    dob: "1990-01-01",
+    sex: "Male",
+    phone: "555-555-5555",
   },
   {
     name: "Jackson Lee",
