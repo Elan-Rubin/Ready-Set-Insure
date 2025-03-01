@@ -206,26 +206,28 @@ This is the normal user confirmation process
 def confirmUser():
     try:
         data = request.json
-        dob = data["DOB"]
-        policy_number = str(data["policy_number"]) 
-        email = data["email"]
+        policy_number = str(data.get("policy_number"))
 
-        # Check if user exists
-        existing_user = mongo.db.clients.find_one({
-            "email": email,
-            "dob": dob,
-            "policy_number": policy_number  # Ensure key matches DB
-        })
+        # Check if user exists based on policy number only
+        existing_user = mongo.db.clients.find_one({"policy_number": policy_number})
 
         if existing_user:
-            print(f"User Found: {existing_user}")  
-            return jsonify({"message": "User exists"}), 200
+            # Remove sensitive information
+            del existing_user['_id']
+            del existing_user['password']
+            return jsonify({
+                "message": "Policy found",
+                "has_active_policy": True,
+                "user_data": existing_user
+            }), 200
 
-        print("User Not Found")  
-        return jsonify({"error": "User does not exist"}), 404
+        return jsonify({
+            "message": "Policy not found",
+            "has_active_policy": False
+        }), 404
 
     except Exception as e:
-        return jsonify({"error": f"User confirmation failed: {str(e)}"}), 500
+        return jsonify({"error": f"Policy confirmation failed: {str(e)}"}), 500
 
 
 
