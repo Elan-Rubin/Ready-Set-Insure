@@ -218,3 +218,34 @@ export default function Dashboard() {
     </div>
   );
 }
+
+function getGradientColor(value, minValue, maxValue) {
+  // If min and max are the same, return yellow (middle color)
+  if (minValue === maxValue) {
+    return "#EAB308" // Yellow
+  }
+
+  // Calculate normalized position in the range (0 to 1)
+  const normalizedValue = (value - minValue) / (maxValue - minValue)
+
+  // Interpolate colors: Green (lowest) -> Yellow (middle) -> Red (highest)
+  // RGB values: Green(34,197,94), Yellow(234,179,8), Red(239,46,34)
+  let r, g, b
+
+  if (normalizedValue <= 0.5) {
+    // Green to Yellow (normalize 0-0.5 range to 0-1)
+    const t = normalizedValue * 2
+    r = Math.round(34 + (234 - 34) * t)
+    g = Math.round(197 + (179 - 197) * t)
+    b = Math.round(94 + (8 - 94) * t)
+  } else {
+    // Yellow to Red (normalize 0.5-1 range to 0-1)
+    const t = (normalizedValue - 0.5) * 2
+    r = Math.round(234 + (239 - 234) * t)
+    g = Math.round(179 + (46 - 179) * t)
+    b = Math.round(8 + (34 - 8) * t)
+  }
+
+  // Return RGB color string
+  return `rgb(${r}, ${g}, ${b})`
+}
