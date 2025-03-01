@@ -32,13 +32,11 @@ def SignUpEmployee():
         '''
         Sample Request:
         {
-            "username": "John Doe",
             "email": "johndoe@gmail.com",
             "password": "johndoe"
         }
         '''
         data = request.json
-        username = data["username"]
         email = data["email"]
         password = data["password"]  
 
@@ -48,7 +46,7 @@ def SignUpEmployee():
             return jsonify({"error": "User already exists"}), 400
 
         # Insert user into the database
-        mongo.db.users.insert_one({"username": username, "email": email, "password": password})
+        mongo.db.users.insert_one({"email": email, "password": password})
 
         return jsonify({"message": "User registered successfully"}), 201
 
