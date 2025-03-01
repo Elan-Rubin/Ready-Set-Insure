@@ -115,7 +115,7 @@ def SignUpClient():
         data = request.json
         username = data["username"]
         dob = data["DOB"]
-        policy_number = data["policy"]
+        policy_number = data["policy_number"]
         email = data["email"]
         password = data["password"]
 
@@ -142,6 +142,60 @@ def SignUpClient():
 
     except Exception as e:
         return jsonify({"error": f"Signup failed: {str(e)}"}), 500
+    
+
+@app.route("/UpdateClientStatus", methods=["POST"])
+def UpdateClientStatus():
+    '''
+    Sample Request:
+    {
+        "policy_number": "12345678"
+    }
+    '''
+    try:
+        data = request.json
+        policy_number = data.get("policy_number")
+
+        if not policy_number:
+            return jsonify({"error": "Policy number is required"}), 400
+
+        # Find the user by policy number
+        existing_user = mongo.db.clients.find_one({"policy_number": policy_number})
+
+        if not existing_user:
+            return jsonify({"error": "User with this policy number does not exist"}), 404
+
+        # Update user's status to "incomplete"
+        mongo.db.clients.update_one(
+            {"policy_number": policy_number},
+            {"$set": {"status": "incomplete"}}
+        )
+
+        return jsonify({"message": "Status updated to 'incomplete' successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to update status: {str(e)}"}), 500
+    
+
+@app.route("/GetIncompleteClients", methods=["GET"])
+def GetIncompleteClients():
+    try:
+        # Query for all users with status "incomplete"
+        users = mongo.db.clients.find({"status": "incomplete"}, {"password": 0})  # Excludes password field
+
+        # Convert MongoDB cursor to a list of dictionaries
+        users_list = list(users)
+
+        # Convert ObjectId to string for JSON serialization
+        for user in users_list:
+            user["_id"] = str(user["_id"])
+
+        return jsonify({"users": users_list}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve users: {str(e)}"}), 500
+
+
     
 # Confirms User Exist - DOB and Policy Number or - Email DOB Username
 '''
