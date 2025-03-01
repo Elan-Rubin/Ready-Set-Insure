@@ -64,9 +64,9 @@ export function LoginForm({
           <form className="p-6 md:p-8">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
+                <h1 className="text-2xl font-bold">Welcome.</h1>
                 <p className="text-balance text-muted-foreground">
-                  Login or Register for PLACEHOLDER NAME
+                  Login or Register for Ready, Set, Insure!
                 </p>
               </div>
 
@@ -76,7 +76,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="first.last@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -104,27 +104,19 @@ export function LoginForm({
                 Login
               </Button>
 
-              {/* Display message */}
               {message && (
                 <p className="text-center text-sm text-red-500">{message}</p>
               )}
 
-              {/* Navigation buttons */}
-              <Button asChild className="w-full">
-                <Link href="/customer-view">Go to Customer View</Link>
-              </Button>
-              <Button asChild className="w-full">
-                <Link href="/dashboard-view">Go to Dashboard</Link>
-              </Button>
             </div>
           </form>
-          <div className="relative hidden bg-muted md:block">
-            <img
-              src="/placeholder.svg"
+            <div className="relative hidden bg-muted md:flex items-center justify-center">
+              <img
+              src="/rsi_logo_full.png"
               alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+              className="max-h-52 max-w-52"
+              />
+            </div>
         </CardContent>
       </Card>
     </div>

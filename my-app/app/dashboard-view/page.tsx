@@ -31,7 +31,7 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">
-        PLACEHOLDER NAME Dashboard
+        Ready, Set, Insure! Dashboard
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column - Recent Sales */}
@@ -52,8 +52,10 @@ export default function Dashboard() {
               {customers
                 .sort((a, b) => {
                   const statusOrder = { incomplete: 1, pending: 2, complete: 3 }
+                  if (statusOrder[a.status] === statusOrder[b.status]) {
+                    return new Date(a.date).getTime() - new Date(b.date).getTime()
+                  }
                   return statusOrder[a.status] - statusOrder[b.status]
-                  //   this isnt actually an eror
                 })
                 .map((customer, index) => (
                   <div key={index} className="flex items-center">
@@ -70,11 +72,8 @@ export default function Dashboard() {
                       <p className="text-sm font-medium leading-none">
                         {customer.name}
                       </p>
-                      {/* <p className="text-sm text-muted-foreground">
-                        {customer.email}
-                      </p> */}
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(customer.date), "do 'of' MMMM yyyy")}
+                        {format(new Date(customer.date), "PPP")}
                       </p>
                     </div>
                     <div
@@ -381,32 +380,32 @@ const lineChartData = [
 ]
 
 function getGradientColor(value, minValue, maxValue) {
-  // If min and max are the same, return yellow (middle color)
-  if (minValue === maxValue) {
-    return "rgb(253, 224, 71)" // Yellow
+    // If min and max are the same, return yellow (middle color)
+    if (minValue === maxValue) {
+      return "#EAB308" // Yellow
+    }
+  
+    // Calculate normalized position in the range (0 to 1)
+    const normalizedValue = (value - minValue) / (maxValue - minValue)
+  
+    // Interpolate colors: Green (lowest) -> Yellow (middle) -> Red (highest)
+    // RGB values: Green(34,197,94), Yellow(234,179,8), Red(239,46,34)
+    let r, g, b
+  
+    if (normalizedValue <= 0.5) {
+      // Green to Yellow (normalize 0-0.5 range to 0-1)
+      const t = normalizedValue * 2
+      r = Math.round(34 + (234 - 34) * t)
+      g = Math.round(197 + (179 - 197) * t)
+      b = Math.round(94 + (8 - 94) * t)
+    } else {
+      // Yellow to Red (normalize 0.5-1 range to 0-1)
+      const t = (normalizedValue - 0.5) * 2
+      r = Math.round(234 + (239 - 234) * t)
+      g = Math.round(179 + (46 - 179) * t)
+      b = Math.round(8 + (34 - 8) * t)
+    }
+  
+    // Return RGB color string
+    return `rgb(${r}, ${g}, ${b})`
   }
-
-  // Calculate normalized position in the range (0 to 1)
-  const normalizedValue = (value - minValue) / (maxValue - minValue)
-
-  // Interpolate colors: Green (lowest) -> Yellow (middle) -> Red (highest)
-  // RGB values: Green(34,197,94), Yellow(253,224,71), Red(239,68,68)
-  let r, g, b
-
-  if (normalizedValue <= 0.5) {
-    // Green to Yellow (normalize 0-0.5 range to 0-1)
-    const t = normalizedValue * 2
-    r = Math.round(34 + (253 - 34) * t)
-    g = Math.round(197 + (224 - 197) * t)
-    b = Math.round(94 + (71 - 94) * t)
-  } else {
-    // Yellow to Red (normalize 0.5-1 range to 0-1)
-    const t = (normalizedValue - 0.5) * 2
-    r = Math.round(253 + (239 - 253) * t)
-    g = Math.round(224 + (68 - 224) * t)
-    b = Math.round(71 + (68 - 71) * t)
-  }
-
-  // Return RGB color string
-  return `rgb(${r}, ${g}, ${b})`
-}
