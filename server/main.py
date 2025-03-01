@@ -225,7 +225,6 @@ def confirmUser():
         if existing_user:
             # Remove sensitive information
             del existing_user['_id']
-            del existing_user['password']
             return jsonify({
                 "message": "Policy found",
                 "has_active_policy": True,
