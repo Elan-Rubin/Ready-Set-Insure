@@ -143,20 +143,47 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={barChartData}>
                   <XAxis
-                    dataKey="name"
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
+                  dataKey="name"
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
                   />
                   <YAxis
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `${value}`}
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value}`}
                   />
-                  <Bar dataKey="total" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+                  <Bar
+                  dataKey="total"
+                  radius={[4, 4, 0, 0]}
+                  shape={(props) => {
+                    const { x, y, width, height, value } = props;
+
+                    // Find min and max values
+                    const values = barChartData.map((item) => item.total);
+                    const minValue = Math.min(...values);
+                    const maxValue = Math.max(...values);
+
+                    // Get the color based on value
+                    const stroke = getGradientColor(value, minValue, maxValue);
+
+                    return (
+                    <rect
+                      x={x}
+                      y={y}
+                      width={width}
+                      height={height}
+                      fill="transparent"
+                      stroke={stroke}
+                      strokeWidth={3}
+                      radius={[4, 4, 0, 0]}
+                    />
+                    );
+                  }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
