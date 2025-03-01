@@ -92,8 +92,8 @@ export default function DashboardPage() {
 
       {/* Center Column - Empty for now */}
       <div className="flex-1 border-r p-4">
-        <h2 className="text-2xl font-bold mb-4">Main Content Area</h2>
-        <p className="text-muted-foreground">This area is currently empty and can be used for future content.</p>
+        <h2 className="text-2xl font-bold mb-4">Summary</h2>
+        <p className="text-muted-foreground">Lorem ipsum, dolor sit amet consectetur adipisicing elit. Sit natus voluptate harum adipisci laudantium non, veritatis ipsam iure nostrum accusamus minima cumque quaerat eveniet recusandae amet optio quo odio eius.</p>
       </div>
 
       {/* Right Column - Call History */}
@@ -125,16 +125,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="border-t p-4">
-          <div className="flex items-end gap-2">
-            <Textarea placeholder="Type your message..." className="min-h-[80px]" />
-            <Button size="icon" className="h-10 w-10 shrink-0">
-              <Send className="h-4 w-4" />
-              <span className="sr-only">Send message</span>
-            </Button>
           </div>
         </div>
       </div>
