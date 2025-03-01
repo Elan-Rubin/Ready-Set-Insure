@@ -252,6 +252,13 @@ def profile(email):
 
 '''
 
+# setting up placeholder for webhooks from vapi api calls 
+# to get data from calls
+@app.route("/callhook",methods = ['POST','GET'])
+def callHook():
+    data = None
+    return jsonify(data)
+
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
     

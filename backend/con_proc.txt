@@ -1,0 +1,3 @@
+   rosem    1028     887 cons0    14:11:29 /usr/bin/bash
+   rosem    1027     887 cons0    14:11:29 /usr/bin/ps
+   rosem     887       1 cons0    14:07:41 /usr/bin/bash
