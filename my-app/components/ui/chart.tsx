@@ -4,7 +4,7 @@ import * as React from "react"
 import type { LucideIcon } from "lucide-react"
 import { type TooltipProps, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts"
 
-import { cn } from "@/components/lib/utils"
+import { cn } from "@/lib/utils"
 
 type ChartConfig = {
   [key: string]: {
