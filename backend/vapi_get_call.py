@@ -78,3 +78,46 @@ def get_last_call():
         print(response.text)
 
 print((get_last_call()))
+
+
+def extract_confirmed_policy_number():
+    """
+    Extracts the confirmed policy number from the agent's confirmation message.
+    It looks for a message that says something like:
+    "You provided the policy number 12341234. Is that correct?"
+    """
+    last_call = get_last_call()
+    if not last_call:
+        return None
+
+    # First, check if the agent confirmation is present in the 'messages' array.
+    messages = last_call.get("messages", [])
+    confirmation_text = None
+    for msg in messages:
+        # Check for a bot (agent) message that contains confirmation language
+        if msg.get("role") == "bot":
+            text = msg.get("message", "")
+            if "provided the policy number" in text.lower():
+                confirmation_text = text
+                break
+
+    # If not found in messages, fallback to searching the full transcript.
+    if not confirmation_text:
+        transcript = last_call.get("transcript", "")
+        # Look for the pattern "You provided the policy number ..." in transcript.
+        match = re.search(r'you provided the policy number\s*([\d\s]+)', transcript, re.IGNORECASE)
+        if match:
+            confirmation_text = match.group(0)
+
+    if confirmation_text:
+        # Use regex to extract the number from the confirmation text.
+        match = re.search(r'policy number\s*([\d\s]+)', confirmation_text, re.IGNORECASE)
+        if match:
+            confirmed_policy = match.group(1).strip().replace(" ", "")
+            return confirmed_policy
+    return None
+
+def get_policy_number_json():
+    confirmed_policy = extract_confirmed_policy_number()
+    result = {"confirmed_policy_number": confirmed_policy} if confirmed_policy else {"confirmed_policy_number": "Not found"}
+    return json.dumps(result, indent=2)
