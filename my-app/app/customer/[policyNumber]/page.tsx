@@ -44,7 +44,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [callHistory, setCallHistory] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
-  const [analysis, setAnalysis] = useState("");
+  // const [analysis, setAnalysis] = useState("");
   const [feedback, setFeedback] = useState("");
   const [chat, setChat] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -53,7 +53,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [isCallingCustomer, setIsCallingCustomer] = useState(false);
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [callStatusCheckInterval, setCallStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
-  
+  const [analysis, setCall] = useState("")
   // Animation states
   const [displayedSummary, setDisplayedSummary] = useState("");
   const [leftColumnVisible, setLeftColumnVisible] = useState(false);
@@ -156,6 +156,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     async function fetchCall() {
       try {
         const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
+        const data = await response.json()
         if (response.ok) {
           setCall(data);
           console.log("Call analysis:", data);
