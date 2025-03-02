@@ -29,7 +29,7 @@ if not phone_number_id:
 # MongoDB connection - Using Flask app's connection (optional)
 mongo = None
 try:
-    from app import mongo
+    from main import mongo
     print("Successfully connected to MongoDB via Flask app")
 except ImportError:
     print("Warning: Could not import MongoDB connection from Flask app.")
