@@ -18,7 +18,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [callHistory, setCallHistory] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
-  const [analysis, setCall] = useState<any[]>([]);
+  const [analysis, setCall] = useState("");
   
   // Animation states
   const [displayedSummary, setDisplayedSummary] = useState("");
@@ -94,8 +94,9 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
         const data = await response.json();
         if (response.ok) {
-          console.log(data);
           setCall(data);
+          console.log(data);
+          
         } else {
           console.error("Failed to fetch customers:", data.error);
         }
@@ -301,7 +302,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           <h2 className="text-xl font-bold mb-4">Summary</h2>
           <div className="flex-1 overflow-auto mb-4">
             {analysis ? (
-              <p className="text-muted-foreground cursor-typing">{displayedSummary}</p>
+              <p className="text-muted-foreground cursor-typing">{analysis}</p>
             ) : (
               <p className="text-muted-foreground">No summary available yet.</p>
             )}
