@@ -57,5 +57,5 @@ Creating a robust voice AI assistant involves replicating complex human conversa
 
 ## 📂 Repository & Demo
 
-- 📌 **Repo URL:** [Insert GitHub Repo Link]  
+- 📌 **Repo URL:** https://github.com/Elan-Rubin/codefest_2025 
 - 🎥 **Demo URL:** [Insert Live Demo Link]
