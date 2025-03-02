@@ -4,10 +4,10 @@
 
 ## 👥 Contributors
 - 🏆 Jainam
-- 🏆 Logan
+- 🏆 Chi
 - 🏆 Shams
 - 🏆 Elan
-- 🏆 Chi
+- 🏆 Logan
 
 ## 📝 Overview
 
