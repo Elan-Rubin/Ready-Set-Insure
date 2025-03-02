@@ -74,6 +74,7 @@ def get_last_call(id):
             
             policynum = vgC.extract_policy_number(i)
             print(id,policynum,id==policynum)
+            
             if policynum==id.strip():
                 print(id)
                 return json.dumps(i['analysis']['summary'].strip('\n'))
