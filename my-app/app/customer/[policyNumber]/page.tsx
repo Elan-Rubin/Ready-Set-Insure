@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { format } from "date-fns";
-import { FileText, Send, ArrowLeft } from "lucide-react";
+import { FileText, Send, ArrowLeft, Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Toast } from "@/components/ui/toast";
 
 export default function CustomerPage({ params }: { params: { policyNumber: string } }) {
   const router = useRouter();
@@ -19,6 +20,8 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
   const [analysis, setCall] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [showToast, setShowToast] = useState(false);
   
   // Animation states
   const [displayedSummary, setDisplayedSummary] = useState("");
@@ -206,6 +209,34 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     }
   };
 
+  // Handle sending feedback notification
+  const handleSendFeedback = async () => {
+    if (!feedback.trim()) return;
+
+    try {
+      // Implement the notification sending logic here
+      await fetch("http://localhost:5000/SendCustomerFeedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          policy_number: params.policyNumber,
+          feedback: feedback
+        }),
+      });
+      
+      // Show success toast
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      
+      // Clear the feedback input
+      setFeedback("");
+    } catch (err) {
+      console.error("Error sending feedback:", err);
+    }
+  };
+
   // Handle back button
   const handleBack = () => {
     router.push("/dashboard-view");
@@ -307,6 +338,27 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
               <p className="text-muted-foreground">No summary available yet.</p>
             )}
           </div>
+          <div className="border-t pt-4">
+            <h3 className="text-md font-semibold mb-2">Employee Feedback</h3>
+            <Textarea
+              placeholder="Enter feedback for the customer..."
+              className="min-h-[80px] mb-2"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+            />
+            <Button 
+              className="w-full flex items-center justify-center" 
+              onClick={handleSendFeedback}
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              Notify Customer
+            </Button>
+          </div>
+          {showToast && (
+            <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-md">
+              Feedback sent successfully!
+            </div>
+          )}
         </div>
 
         {/* Right Column - Call History */}
