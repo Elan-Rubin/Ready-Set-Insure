@@ -135,7 +135,7 @@ def get_chat_records(id):
             
             if policynum==id.strip():
                 print(id)
-                return i['transcript']
+                return json.dumps(i['transcript'])
                 break
                 # break
             # try:

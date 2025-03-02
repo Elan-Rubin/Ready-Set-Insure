@@ -46,6 +46,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [summary, setSummary] = useState("");
   const [analysis, setAnalysis] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [chat, setChat] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info"); // info, success, error
@@ -118,29 +119,8 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           setUserData(data.user_data);
           setSummary(data.user_data.summary || "");
           
-          // Parse chatlog if it exists
-          if (data.user_data.chatlog) {
-            try {
-              // First try to parse as JSON (for backward compatibility)
-              try {
-                const chatlogData = JSON.parse(data.user_data.chatlog);
-                setCallHistory(chatlogData);
-              } catch (jsonError) {
-                // If not valid JSON, parse as string format
-                const parsedMessages = parseRawChatlog(data.user_data.chatlog);
-                setCallHistory(parsedMessages);
-              }
-            } catch (e) {
-              console.error("Error parsing chatlog:", e);
-              setCallHistory([]);
-            }
-          } else {
-            // No chatlog available
-            setCallHistory([]);
-          }
-
-          // Fetch call history from new endpoint
-          fetchCallHistory();
+          // We'll now rely on fetchChat to get the chatlog data
+          // This fetch is no longer responsible for chat history
           
           // Start animations after data loads
           startAnimations();
@@ -177,33 +157,47 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
       try {
         const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
         if (response.ok) {
-          const data = await response.json();
-          setAnalysis(data);
+          setCall(data);
+          console.log("Call analysis:", data);
         } else {
-          console.error("Failed to fetch call data");
+          console.error("Failed to fetch call analysis:", data.error);
         }
       } catch (error) {
-        console.error("Error fetching call data:", error);
+        console.error("Error fetching call analysis:", error);
       }
     }
 
     fetchCall();
   }, [params.policyNumber]);
 
-  // Function to fetch call history
-  const fetchCallHistory = async () => {
-    try {
-      const response = await fetch(`http://localhost:5000/getCallHistory/${params.policyNumber}`);
-      if (response.ok) {
+  // Updated fetchChat to properly set the callHistory state
+  useEffect(() => {
+    async function fetchChat() {
+      try {
+        const response = await fetch(`http://localhost:5000/getchatlogs/${params.policyNumber}`);
         const data = await response.json();
-        if (data.callHistory && Array.isArray(data.callHistory)) {
-          setCallHistory(data.callHistory);
+        if (response.ok) {
+          setChat(data);
+          console.log("Chat data received:", data);
+          
+          // Parse the chatlog and update the callHistory state
+          if (data && typeof data === 'string') {
+            const parsedMessages = parseRawChatlog(data);
+            setCallHistory(parsedMessages);
+          } else if (Array.isArray(data)) {
+            // If the API returns already structured data
+            setCallHistory(data);
+          }
+        } else {
+          console.error("Failed to fetch chat logs:", data.error);
         }
+      } catch (error) {
+        console.error("Error fetching chat logs:", error);
       }
-    } catch (error) {
-      console.error("Error fetching call history:", error);
     }
-  };
+
+    fetchChat();
+  }, [params.policyNumber]);
 
   // Animation functions
   const startAnimations = () => {
@@ -260,10 +254,12 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
       
       setNewMessage("");
 
-      // Update the backend with the new message in the expected format
-      const existingChatlog = userData.chatlog || "";
+      // Format for backend update
+      const existingChatlog = chat.toString();
       const updatedChatlog = `${existingChatlog}${existingChatlog ? '\n' : ''}AI: ${newMessage}`;
-
+      
+      // Update backend (commented out for now)
+      /*
       await fetch("http://localhost:5000/UpdateClientChatlog", {
         method: "POST",
         headers: {
@@ -274,6 +270,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           chatlog: updatedChatlog
         }),
       });
+      */
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -643,7 +640,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
                           {isCustomer ? (
                             <AvatarFallback>{userData.name ? userData.name[0] : "C"}</AvatarFallback>
                           ) : (
-                            <AvatarImage src="/rsi_logo.png" alt="Ready Set Assistant" />
+                            <AvatarImage src="/rsi_logo.png" alt="Sarah (AI)" />
                           )}
                         </Avatar>
                         <div
@@ -654,7 +651,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
                           }`}
                         >
                           <div className="mb-1 text-xs font-medium">
-                            {isCustomer ? (userData?.name || "Customer") : "Ready Set Assistant"}
+                            {isCustomer ? (userData?.name || "Customer") : "Sarah (AI)"}
                           </div>
                           <div>{message.message}</div>
                         </div>

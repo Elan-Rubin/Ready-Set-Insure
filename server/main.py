@@ -128,6 +128,10 @@ def get_call(id):
     data = vgc.get_last_call(id)
     return jsonify(data)
 
+@app.route('/getchatlogs/<id>',methods=['POST','GET'])
+def get_chatlogs(id):
+    data = vgc.get_chat_records(id)
+    return data
 
 
 '''
@@ -416,7 +420,7 @@ def UpdateClientChatlog():
 
         # Get existing chatlog or initialize new one
         try:
-            chatlog = json.loads(client.get("chatlog", "[]"))
+            chatlog =vgc.get_chat_records(policy_number)
         except json.JSONDecodeError:
             chatlog = []
 
