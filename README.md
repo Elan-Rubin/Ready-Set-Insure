@@ -16,7 +16,9 @@
 Our system provides an intelligent voice assistant that improves insurance customer service through automated, natural conversations. It enhances efficiency, reduces wait times, and ensures seamless interactions between customers and insurers.
 
 ## 📝 Description
-Ready, Set, Insure is built to modernize and simplify the customer experience in the insurance industry. By integrating advanced AI models, our system ensures seamless, real-time conversations that accurately transcribe, process, and generate human-like responses. The AI agent efficiently handles policy inquiries, claim processing, and general customer assistance, reducing the need for human intervention and minimizing wait times. The system also intelligently manages conversation turn-taking, ensuring natural and uninterrupted dialogue with customers.
+Traditional voice AI systems in the insurance industry struggle with natural conversation flow, particularly turn-taking—understanding when a customer has finished speaking without relying solely on silence detection. Human speech is complex, with natural pauses, interruptions, and overlapping dialogue, making real-time processing challenging. Inefficient AI-driven interactions often lead to frustrating customer experiences, increased wait times, and a greater dependency on human agents.
+
+Ready, Set, Insure is designed to modernize customer engagement in the insurance sector by integrating advanced AI models that ensure seamless, real-time conversations. Our system accurately transcribes, processes, and generates human-like responses while intelligently managing turn-taking for a more natural dialogue. By efficiently handling policy inquiries, claim processing, and general customer assistance, our AI agent minimizes wait times, reduces the need for human intervention, and enhances overall customer satisfaction.
 
 ## 🔁 The Voice AI Loop
 1. 📞 **Phone Call Connection** – The system connects an incoming call.
@@ -24,9 +26,6 @@ Ready, Set, Insure is built to modernize and simplify the customer experience in
 3. 🧠 **Processing with LLM** – GPT-4.0 Cluster interprets and formulates responses.
 4. 🔊 **Text-to-Speech Synthesis** – Eleven Labs Turbo generates natural voice output.
 5. ☎️ **Telephony Output** – Twilio transmits the AI-generated speech to the caller.
-
-## ❗ Problem Statement
-Creating a robust voice AI assistant involves replicating complex human conversational behaviors. Traditional voice AI systems struggle with **turn-taking**—understanding when a caller has finished speaking. Many solutions rely on detecting silence, but human speech is more nuanced, with natural pauses and interruptions. Our system integrates cutting-edge models to improve real-time conversation flow, enhancing user experience.
 
 ## 🏗️ Tech Stack
 - 🖥️ **Backend:** Flask (Python), Vapi API, Ngrok
