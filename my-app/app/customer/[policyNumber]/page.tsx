@@ -28,6 +28,37 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [leftColumnVisible, setLeftColumnVisible] = useState(false);
   const [leftColumnItems, setLeftColumnItems] = useState<boolean[]>([false, false, false]);
 
+  // Parse chatlog string into structured messages
+  const parseRawChatlog = (chatlogString: string) => {
+    if (!chatlogString || typeof chatlogString !== 'string') {
+      return [];
+    }
+
+    // Split by new lines
+    const lines = chatlogString.split('\n').filter(line => line.trim() !== '');
+    
+    const messages = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Check if line starts with AI: or User:
+      if (line.startsWith('AI:')) {
+        messages.push({
+          id: i + 1,
+          message: line.substring(3).trim(),
+          sender: "assistant"
+        });
+      } else if (line.startsWith('User:')) {
+        messages.push({
+          id: i + 1,
+          message: line.substring(5).trim(),
+          sender: "client"
+        });
+      }
+    }
+    
+    return messages;
+  };
+
   // Fetch customer data based on policy number
   useEffect(() => {
     const fetchCustomerData = async () => {
@@ -47,25 +78,25 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           setUserData(data.user_data);
           setSummary(data.user_data.summary || "");
           
-          // Set default call history if none exists
+          // Parse chatlog if it exists
           if (data.user_data.chatlog) {
             try {
-              const chatlogData = JSON.parse(data.user_data.chatlog);
-              setCallHistory(chatlogData);
+              // First try to parse as JSON (for backward compatibility)
+              try {
+                const chatlogData = JSON.parse(data.user_data.chatlog);
+                setCallHistory(chatlogData);
+              } catch (jsonError) {
+                // If not valid JSON, parse as string format
+                const parsedMessages = parseRawChatlog(data.user_data.chatlog);
+                setCallHistory(parsedMessages);
+              }
             } catch (e) {
               console.error("Error parsing chatlog:", e);
-              setCallHistory([
-                { id: 1, message: "Hello, how can I help you today?", sender: "assistant" },
-                { id: 2, message: "I have a question about my policy.", sender: "client" },
-                { id: 3, message: "I'd be happy to assist with that. What would you like to know?", sender: "assistant" },
-              ]);
+              setCallHistory([]);
             }
           } else {
-            setCallHistory([
-              { id: 1, message: "Hello, how can I help you today?", sender: "assistant" },
-              { id: 2, message: "I have a question about my policy.", sender: "client" },
-              { id: 3, message: "I'd be happy to assist with that. What would you like to know?", sender: "assistant" },
-            ]);
+            // No chatlog available
+            setCallHistory([]);
           }
           
           // Start animations after data loads
@@ -174,7 +205,10 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
       
       setNewMessage("");
 
-      // Then send to backend
+      // Update the backend with the new message in the expected format
+      const existingChatlog = userData.chatlog || "";
+      const updatedChatlog = `${existingChatlog}${existingChatlog ? '\n' : ''}AI: ${newMessage}`;
+
       await fetch("http://localhost:5000/UpdateClientChatlog", {
         method: "POST",
         headers: {
@@ -182,8 +216,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         },
         body: JSON.stringify({
           policy_number: params.policyNumber,
-          message: newMessage,
-          sender: "assistant"
+          chatlog: updatedChatlog
         }),
       });
     } catch (err) {
@@ -368,45 +401,52 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           </div>
 
           <div className="flex-1 overflow-auto p-4">
-            <div className="space-y-4">
-              {callHistory.map((message) => {
-                const sender = message.sender === "client" ? userData?.name || "Customer" : "Ready Set Assistant";
-                const isCustomer = message.sender === "client";
+            {callHistory.length > 0 ? (
+              <div className="space-y-4">
+                {callHistory.map((message) => {
+                  const isCustomer = message.sender === "client";
 
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      isCustomer ? "justify-end" : "justify-start"
-                    }`}
-                  >
+                  return (
                     <div
-                      className={`flex max-w-[80%] ${
-                        isCustomer ? "flex-row-reverse" : "flex-row"
+                      key={message.id}
+                      className={`flex ${
+                        isCustomer ? "justify-end" : "justify-start"
                       }`}
                     >
-                      <Avatar className="h-8 w-8">
-                        {isCustomer ? (
-                          <AvatarFallback>{userData.name ? userData.name[0] : "C"}</AvatarFallback>
-                        ) : (
-                          <AvatarImage src="/rsi_logo.png" alt={sender} />
-                        )}
-                      </Avatar>
                       <div
-                        className={`mx-2 rounded-lg p-4 ${
-                          isCustomer
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
+                        className={`flex max-w-[80%] ${
+                          isCustomer ? "flex-row-reverse" : "flex-row"
                         }`}
                       >
-                        <div className="mb-1 text-xs font-medium">{sender}</div>
-                        <div>{message.message}</div>
+                        <Avatar className="h-8 w-8">
+                          {isCustomer ? (
+                            <AvatarFallback>{userData.name ? userData.name[0] : "C"}</AvatarFallback>
+                          ) : (
+                            <AvatarImage src="/rsi_logo.png" alt="Ready Set Assistant" />
+                          )}
+                        </Avatar>
+                        <div
+                          className={`mx-2 rounded-lg p-4 ${
+                            isCustomer
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <div className="mb-1 text-xs font-medium">
+                            {isCustomer ? (userData?.name || "Customer") : "Ready Set Assistant"}
+                          </div>
+                          <div>{message.message}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No conversation history available
+              </div>
+            )}
           </div>
         </div>
       </div>

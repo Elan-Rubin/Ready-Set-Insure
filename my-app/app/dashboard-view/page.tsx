@@ -252,7 +252,7 @@ export default function Dashboard() {
 
         {/* Right Column - Calendar */}
         <div className="col-span-1 flex flex-col gap-6">
-          <Card 
+          {/* <Card 
             className={`transition-all duration-500 delay-400 ${panelsAnimated ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}
           >
             <CardHeader>
@@ -271,7 +271,7 @@ export default function Dashboard() {
                 getGradientColor={getGradientColor}
               />
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
       
