@@ -1,18 +1,62 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker, DayClickEventHandler } from "react-day-picker";
+import { format } from "date-fns";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  dayCounts?: Record<string, number>;
+  getGradientColor?: (value: number, minValue: number, maxValue: number) => string;
+};
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  dayCounts = {},
+  getGradientColor,
   ...props
 }: CalendarProps) {
+  const dayCountValues = Object.values(dayCounts);
+  const maxDayCount = dayCountValues.length ? Math.max(...dayCountValues) : 0;
+
+  const renderDay = (day: Date, modifiers: Record<string, boolean>) => {
+    const dateStr = day instanceof Date && !isNaN(day.getTime()) ? format(day, 'yyyy-MM-dd') : '';
+    const count = dayCounts[dateStr] || 0;
+
+    let style: React.CSSProperties = {};
+    let textColor = '';
+    let isOutside = modifiers.outside;
+
+    if (count > 0 && getGradientColor) {
+      const bgColor = getGradientColor(count, 0, maxDayCount);
+      style.backgroundColor = bgColor;
+      
+      // Determine text color based on background brightness
+      const rgb = bgColor.replace(/[^\d,]/g, '').split(',').map(Number);
+      const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+      textColor = brightness > 150 ? 'text-gray-900' : 'text-white';
+    }
+
+    return (
+      <div
+        className={cn(
+          buttonVariants({ variant: "ghost" }),
+          "h-9 w-9 p-0 font-normal flex items-center justify-center rounded-md",
+          modifiers.selected && "bg-primary text-primary-foreground",
+          modifiers.today && !modifiers.selected && "border border-gray-300",
+          isOutside && "text-muted-foreground opacity-50",
+          textColor
+        )}
+        style={style}
+      >
+        {day instanceof Date && !isNaN(day.getTime()) ? day.getDate() : ''}
+      </div>
+    );
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -30,25 +74,13 @@ function Calendar({
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse space-y-1",
-        head_row: "flex",
+        head_row: "",
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
-        ),
-        day_range_end: "day-range-end",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
+        row: "w-full mt-1",
+        cell: "h-9 w-9 text-center text-sm p-0 relative",
+        day: "",
+        day_outside: "day-outside aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
         ...classNames,
       }}
       components={{
@@ -58,11 +90,13 @@ function Calendar({
         IconRight: ({ className, ...props }) => (
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
+        Day: renderDay
       }}
       {...props}
     />
-  )
+  );
 }
-Calendar.displayName = "Calendar"
 
-export { Calendar }
+Calendar.displayName = "Calendar";
+
+export { Calendar };

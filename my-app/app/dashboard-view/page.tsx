@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
-import { useRouter } from "next/navigation"; // Import Next.js router
+import { useRouter } from "next/navigation";
 import {
   Bar,
   BarChart,
@@ -14,6 +14,7 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+// Import your modified Calendar component instead of the default one
 import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
@@ -27,7 +28,12 @@ export default function Dashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [customers, setCustomers] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
-  const router = useRouter(); // Initialize router
+  const [dailyCounts, setDailyCounts] = useState({}); // State for daily counts
+  const [displayedCustomers, setDisplayedCustomers] = useState([]); // For animation
+  const router = useRouter();
+  
+  // Animation states
+  const [panelsAnimated, setPanelsAnimated] = useState(false);
 
   // Fetch clients from the backend
   useEffect(() => {
@@ -38,6 +44,13 @@ export default function Dashboard() {
         if (response.ok) {
           setCustomers(data.users);
           updateBarChartData(data.users);
+          calculateDailyCounts(data.users); // Calculate daily counts for heatmap
+          
+          // Start animations after data is loaded
+          setTimeout(() => {
+            setPanelsAnimated(true);
+            animateCustomersList(data.users);
+          }, 100);
         } else {
           console.error("Failed to fetch customers:", data.error);
         }
@@ -48,6 +61,36 @@ export default function Dashboard() {
 
     fetchCustomers();
   }, []);
+  
+  // Function to calculate daily counts for the heatmap
+  function calculateDailyCounts(customersData) {
+    const counts = {};
+    
+    customersData.forEach(customer => {
+      if (customer.date) {
+        // Format the date as YYYY-MM-DD for use as a key
+        const dateStr = format(new Date(customer.date), 'yyyy-MM-dd');
+        
+        // Increment count for this date
+        counts[dateStr] = (counts[dateStr] || 0) + 1;
+      }
+    });
+    
+    setDailyCounts(counts);
+  }
+  
+  // Function to animate customers list sequentially
+  const animateCustomersList = (customersData) => {
+    // Start with empty array
+    setDisplayedCustomers([]);
+    
+    // Add one customer at a time with a slight delay
+    customersData.forEach((customer, index) => {
+      setTimeout(() => {
+        setDisplayedCustomers(prev => [...prev, customer]);
+      }, index * 100); // 100ms delay between each customer
+    });
+  };
 
   // Update Bar Chart Data
   function updateBarChartData(customersData) {
@@ -79,17 +122,19 @@ export default function Dashboard() {
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column - Customer Assistance */}
-        <Card className="col-span-1 h-full">
+        <Card 
+          className={`col-span-1 h-full transition-all duration-500 ${panelsAnimated ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}
+        >
           <CardHeader>
             <CardTitle>Customer Assistance</CardTitle>
             <CardDescription className="text-red-500">
-              {incompleteCustomers.length} customer(s) need assistance
+              {incompleteCustomers.length} {incompleteCustomers.length === 1 ? "customer" : "customers"} need assistance
             </CardDescription>
             <CardDescription className="text-yellow-500">
-              {pendingCustomers.length} customer(s) are receiving assistance
+              {pendingCustomers.length} {pendingCustomers.length === 1 ? "customer" : "customers"} are receiving assistance
             </CardDescription>
             <CardDescription className="text-green-500">
-              {completeCustomers.length} customer(s) completed assistance
+              {completeCustomers.length} {completeCustomers.length === 1 ? "customer" : "customers"} completed assistance
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -126,7 +171,7 @@ export default function Dashboard() {
                         : "text-green-500"
                     }`}
                   >
-                    {customer.status}
+                    {customer.status.toUpperCase()}
                   </div>
                 </div>
               ))}
@@ -136,9 +181,11 @@ export default function Dashboard() {
 
         {/* Middle Column - Stats and Bar Chart */}
         <div className="col-span-1 flex flex-col gap-6">
-          <Card>
+          <Card 
+            className={`transition-all duration-500 delay-200 ${panelsAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Assistance Calls</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -146,7 +193,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="flex-1">
+          <Card 
+            className={`flex-1 transition-all duration-500 delay-300 ${panelsAnimated ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}
+          >
             <CardHeader>
               <CardTitle>Assistance Requested Based on Day</CardTitle>
             </CardHeader>
@@ -203,11 +252,13 @@ export default function Dashboard() {
 
         {/* Right Column - Calendar */}
         <div className="col-span-1 flex flex-col gap-6">
-          <Card>
+          <Card 
+            className={`transition-all duration-500 delay-400 ${panelsAnimated ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}
+          >
             <CardHeader>
               <CardTitle>Assistance Requested - Calendar</CardTitle>
               <CardDescription>
-                Select a date to view scheduled events
+                Color intensity shows number of requests
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -216,16 +267,27 @@ export default function Dashboard() {
                 selected={date}
                 onSelect={setDate}
                 className="rounded-md border"
+                dayCounts={dailyCounts}
+                getGradientColor={getGradientColor}
               />
-            </CardContent>
-            <CardContent>
-              <Button variant="outline" className="w-full">
-                {date ? format(date, "PPP") : "Pick a date"}
-              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+      
+      {/* Add global CSS for animations */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
