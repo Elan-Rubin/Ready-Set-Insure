@@ -198,7 +198,7 @@ def main():
             try:
                 while True:
                     status = check_call_status(call_id)
-                    if status in ['completed', 'failed', 'canceled']:
+                    if status in ['completed', 'failed', 'canceled', 'ended']:
                         print(f"Call ended with status: {status}")
                         break
                     
