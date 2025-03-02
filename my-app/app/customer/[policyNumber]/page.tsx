@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { format } from "date-fns";
 import { FileText, Send, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,12 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
   const [analysis, setCall] = useState<any[]>([]);
+  
+  // Animation states
+  const [displayedSummary, setDisplayedSummary] = useState("");
+  const [leftColumnVisible, setLeftColumnVisible] = useState(false);
+  const [leftColumnItems, setLeftColumnItems] = useState<boolean[]>([false, false, false]);
+
   // Fetch customer data based on policy number
   useEffect(() => {
     const fetchCustomerData = async () => {
@@ -58,6 +64,9 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
               { id: 3, message: "I'd be happy to assist with that. What would you like to know?", sender: "assistant" },
             ]);
           }
+          
+          // Start animations after data loads
+          startAnimations();
         } else {
           setError("Customer not found");
         }
@@ -78,24 +87,70 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const getSender = (messageId: number) => {
     return messageId % 2 === 1 ? "Ready Set Assistant" : userData?.name || "Customer";
   };
+  
   useEffect(() => {
-          async function fetchCall() {
-            try {
-              const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
-              const data = await response.json();
-              if (response.ok) {
-                console.log(data);
-                setCall(data);
-              } else {
-                console.error("Failed to fetch customers:", data.error);
-              }
-            } catch (error) {
-              console.error("Error fetching customers:", error);
-            }
-          }
-      
-          fetchCall();
-        }, []);
+    async function fetchCall() {
+      try {
+        const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
+        const data = await response.json();
+        if (response.ok) {
+          console.log(data);
+          setCall(data);
+        } else {
+          console.error("Failed to fetch customers:", data.error);
+        }
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+      }
+    }
+
+    fetchCall();
+  }, []);
+
+  // Animation functions
+  const startAnimations = () => {
+    // Start left column fade-in
+    animateLeftColumn();
+    
+    // Start typing animation for summary
+    if (analysis && typeof analysis === 'string') {
+      animateTyping(analysis);
+    }
+    
+    // Start message appearance animation - Make sure this runs regardless of message content
+    animateMessages();
+  };
+
+  const animateLeftColumn = () => {
+    setLeftColumnVisible(true);
+    
+    // Fade in items one by one
+    setTimeout(() => setLeftColumnItems([true, false, false]), 500);
+    setTimeout(() => setLeftColumnItems([true, true, false]), 1200);
+    setTimeout(() => setLeftColumnItems([true, true, true]), 1900);
+  };
+
+  const animateTyping = (text: string) => {
+    let i = 0;
+    const typingSpeed = 30; // ms per character
+    
+    const typingInterval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedSummary(text.substring(0, i + 1));
+        i++;
+      } else {
+        clearInterval(typingInterval);
+      }
+    }, typingSpeed);
+    
+    return () => clearInterval(typingInterval);
+  };
+
+  const animateMessages = () => {
+    // No animation for messages in the right column
+    // Keeping the function for the animation sequence but not doing anything
+  };
+
   // Handle sending a new message
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -110,7 +165,9 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         timestamp: new Date().toISOString()
       };
 
-      setCallHistory([...callHistory, newMessageObj]);
+      const updatedHistory = [...callHistory, newMessageObj];
+      setCallHistory(updatedHistory);
+      
       setNewMessage("");
 
       // Then send to backend
@@ -150,7 +207,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
 
   // Handle back button
   const handleBack = () => {
-    router.push("/");
+    router.push("/dashboard-view");
   };
 
   if (loading) {
@@ -177,7 +234,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
       
       <div className="flex flex-1 overflow-hidden">
         {/* Left Column - Insured Info */}
-        <div className="w-1/3 border-r overflow-auto p-4">
+        <div className={`w-1/3 border-r overflow-auto p-4 transition-opacity duration-500 ${leftColumnVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="flex items-center space-x-4 mb-6">
             <Avatar className="h-12 w-12">
               <AvatarImage
@@ -193,10 +250,13 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           </div>
           
           <div className="space-y-6">
-            <div>
+            <div className={`transition-all duration-500 ${leftColumnItems[0] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <h3 className="text-lg font-semibold mb-2">Case Information</h3>
               <p className="text-sm text-muted-foreground">
                 Case opened: {userData.date ? format(new Date(userData.date), "PPP") : "N/A"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Policy Number: {userData.policy_number || "N/A"}
               </p>
               <p className="text-sm text-muted-foreground">
                 Status:{" "}
@@ -209,18 +269,15 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
                       : "text-green-500"
                   }`}
                 >
-                  {userData.status}
+                    {userData.status?.toUpperCase()}
                 </span>
               </p>
             </div>
             
-            <div>
+            <div className={`transition-all duration-500 ${leftColumnItems[1] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <h3 className="text-lg font-semibold mb-2">Insured Information</h3>
               <p className="text-sm text-muted-foreground">
                 Email: {userData.email || "N/A"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Policy Number: {userData.policy_number || "N/A"}
               </p>
               {userData.dob && (
                 <>
@@ -244,21 +301,10 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           <h2 className="text-xl font-bold mb-4">Summary</h2>
           <div className="flex-1 overflow-auto mb-4">
             {analysis ? (
-              <p className="text-muted-foreground">{analysis}</p>
+              <p className="text-muted-foreground cursor-typing">{displayedSummary}</p>
             ) : (
               <p className="text-muted-foreground">No summary available yet.</p>
             )}
-          </div>
-          
-          {/* Add summary form */}
-          <div className="mt-auto pt-4 border-t">
-            <Textarea 
-              placeholder="Add or update summary..." 
-              className="min-h-24 mb-2"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-            />
-            <Button className="w-full" onClick={handleUpdateSummary}>Update Summary</Button>
           </div>
         </div>
 
@@ -290,7 +336,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
                         {isCustomer ? (
                           <AvatarFallback>{userData.name ? userData.name[0] : "C"}</AvatarFallback>
                         ) : (
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt={sender} />
+                          <AvatarImage src="/rsi_logo.png" alt={sender} />
                         )}
                       </Avatar>
                       <div
@@ -307,27 +353,6 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Message input */}
-          <div className="border-t p-4">
-            <div className="flex space-x-2">
-              <Textarea 
-                placeholder="Type a message..." 
-                className="flex-1"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-              />
-              <Button size="icon" onClick={handleSendMessage}>
-                <Send className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </div>
