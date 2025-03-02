@@ -2,14 +2,39 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { format } from "date-fns";
-import { FileText, Send, ArrowLeft, Bell } from "lucide-react";
+import { 
+  FileText, 
+  Send, 
+  ArrowLeft, 
+  Bell, 
+  CheckCircle, 
+  XCircle, 
+  Info,
+  Phone
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Toast } from "@/components/ui/toast";
+// Toast component is handled with our custom implementation
+// Badge component inline since @/components/ui/badge is not available
+const Badge = ({ 
+  children, 
+  variant, 
+  className 
+}: { 
+  children: React.ReactNode; 
+  variant?: string; 
+  className?: string;
+}) => {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${className}`}>
+      {children}
+    </span>
+  );
+};
 
 export default function CustomerPage({ params }: { params: { policyNumber: string } }) {
   const router = useRouter();
@@ -19,9 +44,14 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [callHistory, setCallHistory] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
-  const [analysis, setCall] = useState("");
+  const [analysis, setAnalysis] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("info"); // info, success, error
+  const [isCallingCustomer, setIsCallingCustomer] = useState(false);
+  const [currentCallId, setCurrentCallId] = useState<string | null>(null);
+  const [callStatusCheckInterval, setCallStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
   
   // Animation states
   const [displayedSummary, setDisplayedSummary] = useState("");
@@ -45,13 +75,23 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         messages.push({
           id: i + 1,
           message: line.substring(3).trim(),
-          sender: "assistant"
+          sender: "assistant",
+          timestamp: new Date().toISOString()
         });
       } else if (line.startsWith('User:')) {
         messages.push({
           id: i + 1,
           message: line.substring(5).trim(),
-          sender: "client"
+          sender: "client",
+          timestamp: new Date().toISOString()
+        });
+      } else if (line.startsWith('---')) {
+        // Call separator
+        messages.push({
+          id: `separator_${i}`,
+          message: line,
+          sender: "system",
+          timestamp: new Date().toISOString()
         });
       }
     }
@@ -98,6 +138,9 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
             // No chatlog available
             setCallHistory([]);
           }
+
+          // Fetch call history from new endpoint
+          fetchCallHistory();
           
           // Start animations after data loads
           startAnimations();
@@ -115,6 +158,13 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     if (params.policyNumber) {
       fetchCustomerData();
     }
+
+    // Cleanup function to clear intervals
+    return () => {
+      if (callStatusCheckInterval) {
+        clearInterval(callStatusCheckInterval);
+      }
+    };
   }, [params.policyNumber]);
 
   // Function to determine sender based on message ID
@@ -126,21 +176,34 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     async function fetchCall() {
       try {
         const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
-        const data = await response.json();
         if (response.ok) {
-          setCall(data);
-          console.log(data);
-          
+          const data = await response.json();
+          setAnalysis(data);
         } else {
-          console.error("Failed to fetch customers:", data.error);
+          console.error("Failed to fetch call data");
         }
       } catch (error) {
-        console.error("Error fetching customers:", error);
+        console.error("Error fetching call data:", error);
       }
     }
 
     fetchCall();
-  }, []);
+  }, [params.policyNumber]);
+
+  // Function to fetch call history
+  const fetchCallHistory = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/getCallHistory/${params.policyNumber}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.callHistory && Array.isArray(data.callHistory)) {
+          setCallHistory(data.callHistory);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching call history:", error);
+    }
+  };
 
   // Animation functions
   const startAnimations = () => {
@@ -151,9 +214,6 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     if (analysis && typeof analysis === 'string') {
       animateTyping(analysis);
     }
-    
-    // Start message appearance animation - Make sure this runs regardless of message content
-    animateMessages();
   };
 
   const animateLeftColumn = () => {
@@ -179,11 +239,6 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     }, typingSpeed);
     
     return () => clearInterval(typingInterval);
-  };
-
-  const animateMessages = () => {
-    // No animation for messages in the right column
-    // Keeping the function for the animation sequence but not doing anything
   };
 
   // Handle sending a new message
@@ -242,13 +297,92 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     }
   };
 
-  // Handle sending feedback notification
+  // Check call status periodically
+  const checkCallStatus = async (callId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/checkCallStatus?call_id=${callId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update UI based on call status
+        if (data.status) {
+          const statusMap: {[key: string]: string} = {
+            "initiated": "Initiating call...",
+            "ringing": "Calling customer...",
+            "in-progress": "Customer is on the call",
+            "completed": "Call completed successfully",
+            "failed": "Call failed to connect",
+            "canceled": "Call was canceled",
+            "ended": "Call ended"
+          };
+          
+          const statusMessage = statusMap[data.status] || data.status;
+          setToastMessage(statusMessage);
+          
+          if (data.status === "completed" || data.status === "ended") {
+            setIsCallingCustomer(false);
+            setToastType("success");
+            // Fetch updated call history
+            fetchCallHistory();
+            // Fetch updated call analysis
+            fetchCall();
+            
+            // Clear interval
+            if (callStatusCheckInterval) {
+              clearInterval(callStatusCheckInterval);
+              setCallStatusCheckInterval(null);
+            }
+            
+            // Show success message for a few seconds
+            setTimeout(() => setShowToast(false), 3000);
+          } else if (data.status === "failed" || data.status === "canceled") {
+            setIsCallingCustomer(false);
+            setToastType("error");
+            
+            // Clear interval
+            if (callStatusCheckInterval) {
+              clearInterval(callStatusCheckInterval);
+              setCallStatusCheckInterval(null);
+            }
+            
+            // Show error message for a few seconds
+            setTimeout(() => setShowToast(false), 5000);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error checking call status:", error);
+    }
+  };
+
+  // Handle sending feedback notification and initiating outbound call
   const handleSendFeedback = async () => {
     if (!feedback.trim()) return;
+    
+    // If already calling, don't allow another call
+    if (isCallingCustomer) {
+      setToastMessage("A call is already in progress");
+      setToastType("info");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
 
     try {
-      // Implement the notification sending logic here
-      await fetch("http://localhost:5000/SendCustomerFeedback", {
+      // Set calling state
+      setIsCallingCustomer(true);
+      setToastMessage("Initiating call to customer...");
+      setToastType("info");
+      setShowToast(true);
+
+      // Send the feedback to the backend to initiate the outbound call
+      const response = await fetch("http://localhost:5000/SendCustomerFeedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,20 +393,74 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         }),
       });
       
-      // Show success toast
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      const data = await response.json();
       
-      // Clear the feedback input
-      setFeedback("");
+      if (response.ok && data.success) {
+        // Store call ID for status checking
+        setCurrentCallId(data.call_id);
+        
+        // Add the feedback to the call history as a system message
+        const newSystemMessage = {
+          id: `feedback_${Date.now()}`,
+          message: `Initiated call to share feedback: "${feedback}"`,
+          sender: "system",
+          timestamp: new Date().toISOString()
+        };
+        
+        setCallHistory([...callHistory, newSystemMessage]);
+        
+        // Clear the feedback input
+        setFeedback("");
+        
+        // Set up interval to check call status
+        const interval = setInterval(() => {
+          if (data.call_id) {
+            checkCallStatus(data.call_id);
+          }
+        }, 5000); // Check every 5 seconds
+        
+        setCallStatusCheckInterval(interval);
+      } else {
+        // Show error toast
+        setToastMessage(`Error: ${data.error || "Failed to initiate call"}`);
+        setToastType("error");
+        setIsCallingCustomer(false);
+        setTimeout(() => setShowToast(false), 5000);
+      }
     } catch (err) {
       console.error("Error sending feedback:", err);
+      setToastMessage("Error connecting to server");
+      setToastType("error");
+      setIsCallingCustomer(false);
+      setTimeout(() => setShowToast(false), 5000);
     }
   };
 
   // Handle back button
   const handleBack = () => {
     router.push("/dashboard-view");
+  };
+
+  // Custom Toast Component
+  const CustomToast = ({ visible, message, type }: { visible: boolean, message: string, type: string }) => {
+    if (!visible) return null;
+    
+    const bgColor = 
+      type === "success" ? "bg-green-100 border-green-400 text-green-700" :
+      type === "error" ? "bg-red-100 border-red-400 text-red-700" :
+      "bg-blue-100 border-blue-400 text-blue-700";
+      
+    const icon = 
+      type === "success" ? <CheckCircle className="h-5 w-5 mr-2" /> :
+      type === "error" ? <XCircle className="h-5 w-5 mr-2" /> :
+      <Info className="h-5 w-5 mr-2" />;
+      
+    return (
+      <div className={`fixed bottom-4 right-4 ${bgColor} border px-4 py-3 rounded shadow-md flex items-center z-50`}>
+        {icon}
+        {message}
+      </div>
+    );
   };
 
   if (loading) {
@@ -358,46 +546,66 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
               <p className="text-sm text-muted-foreground">Sex: {userData.sex || "N/A"}</p>
               <p className="text-sm text-muted-foreground">Phone: {userData.phone || "N/A"}</p>
             </div>
+            
+            <div className={`transition-all duration-500 ${leftColumnItems[2] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <h3 className="text-lg font-semibold mb-2">Recent Activity</h3>
+              {userData.last_feedback ? (
+                <div className="bg-muted p-3 rounded-md mb-2">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Last Feedback Sent: {userData.last_feedback_date ? format(new Date(userData.last_feedback_date), "PPP") : "Recently"}
+                  </p>
+                  <p className="text-sm">{userData.last_feedback}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No recent activity</p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Center Column - Summary */}
         <div className="w-1/3 border-r flex flex-col p-4">
           <h2 className="text-xl font-bold mb-4">Summary</h2>
-          <div className="flex-1 overflow-auto mb-4">
+          <div className="flex-1 overflow-auto mb-4 bg-muted/30 rounded-md p-3">
             {analysis ? (
-              <p className="text-muted-foreground cursor-typing">{analysis}</p>
+              <p className="text-muted-foreground">{analysis}</p>
             ) : (
-              <p className="text-muted-foreground">No summary available yet.</p>
+              <p className="text-muted-foreground">No call summary available yet.</p>
             )}
           </div>
           <div className="border-t pt-4">
-            <h3 className="text-md font-semibold mb-2">Employee Feedback</h3>
+            <h3 className="text-md font-semibold mb-2 flex items-center">
+              <Phone className="mr-2 h-4 w-4" /> 
+              Employee Feedback
+              {isCallingCustomer && (
+                <span className="ml-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800">
+                  Call in progress
+                </span>
+              )}
+            </h3>
             <Textarea
               placeholder="Enter feedback for the customer..."
               className="min-h-[80px] mb-2"
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
+              disabled={isCallingCustomer}
             />
             <Button 
               className="w-full flex items-center justify-center" 
               onClick={handleSendFeedback}
+              disabled={isCallingCustomer || !feedback.trim()}
+              variant={isCallingCustomer ? "outline" : "default"}
             >
               <Bell className="mr-2 h-4 w-4" />
-              Notify Customer
+              {isCallingCustomer ? "Calling Customer..." : "Notify Customer"}
             </Button>
           </div>
-          {showToast && (
-            <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-md">
-              Feedback sent successfully!
-            </div>
-          )}
         </div>
 
         {/* Right Column - Call History */}
         <div className="w-1/3 flex flex-col">
           <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Customer Service Call History</h2>
+            <h2 className="text-lg font-semibold">Customer Service History</h2>
           </div>
 
           <div className="flex-1 overflow-auto p-4">
@@ -405,7 +613,20 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
               <div className="space-y-4">
                 {callHistory.map((message) => {
                   const isCustomer = message.sender === "client";
+                  const isSystem = message.sender === "system";
 
+                  // For system messages, display as info card
+                  if (isSystem) {
+                    return (
+                      <div key={message.id} className="flex justify-center">
+                        <div className="bg-blue-50 text-blue-800 text-xs py-1 px-3 rounded-full border border-blue-200">
+                          {message.message}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // For customer/assistant messages, display as chat bubbles
                   return (
                     <div
                       key={message.id}
@@ -450,6 +671,13 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
           </div>
         </div>
       </div>
+      
+      {/* Toast Notification */}
+      <CustomToast 
+        visible={showToast} 
+        message={toastMessage} 
+        type={toastType} 
+      />
     </div>
   );
 }

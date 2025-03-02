@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Users } from "lucide-react";
+import { format, isSameDay, addDays, isValid, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, eachDayOfInterval } from "date-fns";
+import { Users, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Bar,
@@ -14,8 +14,6 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-// Import your modified Calendar component instead of the default one
-import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -23,13 +21,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function Dashboard() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [customers, setCustomers] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
   const [dailyCounts, setDailyCounts] = useState({}); // State for daily counts
   const [displayedCustomers, setDisplayedCustomers] = useState([]); // For animation
+  const [appointments, setAppointments] = useState([]); // State for appointments
   const router = useRouter();
   
   // Animation states
@@ -60,6 +66,28 @@ export default function Dashboard() {
     }
 
     fetchCustomers();
+    
+    // Set up sample appointments for demonstration
+    const tomorrow = addDays(new Date(), 1);
+    const nextWeek = addDays(new Date(), 7);
+    
+    setAppointments([
+      {
+        id: 1,
+        title: "Monthly checkup with Bob",
+        date: tomorrow,
+        type: "checkup",
+        client: "Bob Smith"
+      },
+      {
+        id: 2,
+        title: "Policy review",
+        date: addDays(new Date(), 3),
+        type: "review",
+        client: "Jane Doe"
+      },
+
+    ]);
   }, []);
   
   // Function to calculate daily counts for the heatmap
@@ -68,11 +96,18 @@ export default function Dashboard() {
     
     customersData.forEach(customer => {
       if (customer.date) {
-        // Format the date as YYYY-MM-DD for use as a key
-        const dateStr = format(new Date(customer.date), 'yyyy-MM-dd');
-        
-        // Increment count for this date
-        counts[dateStr] = (counts[dateStr] || 0) + 1;
+        try {
+          const customerDate = new Date(customer.date);
+          if (isValid(customerDate)) {
+            // Format the date as YYYY-MM-DD for use as a key
+            const dateStr = format(customerDate, 'yyyy-MM-dd');
+            
+            // Increment count for this date
+            counts[dateStr] = (counts[dateStr] || 0) + 1;
+          }
+        } catch (error) {
+          console.error("Invalid date:", customer.date);
+        }
       }
     });
     
@@ -98,8 +133,12 @@ export default function Dashboard() {
     const newBarChartData = daysOfWeek.map((day) => ({
       name: day,
       total: customersData.filter((customer) => {
-        const customerDate = new Date(customer.date);
-        return daysOfWeek[customerDate.getDay()] === day;
+        try {
+          const customerDate = new Date(customer.date);
+          return isValid(customerDate) && daysOfWeek[customerDate.getDay()] === day;
+        } catch (error) {
+          return false;
+        }
       }).length,
     }));
     setBarChartData(newBarChartData);
@@ -110,10 +149,127 @@ export default function Dashboard() {
     router.push(`/customer/${policyNumber}`);
   };
 
+  // Function to check if a day has appointments
+  const getDayAppointments = (day) => {
+    if (!day || !isValid(day)) return [];
+    
+    return appointments.filter(appointment => {
+      try {
+        const appointmentDate = new Date(appointment.date);
+        return isValid(appointmentDate) && isSameDay(appointmentDate, day);
+      } catch (error) {
+        return false;
+      }
+    });
+  };
+
+  // Navigation for calendar
+  const prevMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, -1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(addMonths(currentMonth, 1));
+  };
+
+  // Generate calendar days
+  const generateCalendarDays = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart);
+    const endDate = endOfWeek(monthEnd);
+
+    const dateFormat = "d";
+    const days = [];
+
+    // Create days for the month
+    const daysInterval = eachDayOfInterval({ start: startDate, end: endDate });
+    
+    let rows = [];
+    let cells = [];
+
+    daysInterval.forEach((day, i) => {
+      cells.push(
+        <td key={day.toString()} className="text-center p-1">
+          {renderCalendarDay(day, date, !isSameMonth(day, monthStart))}
+        </td>
+      );
+
+      if ((i + 1) % 7 === 0) {
+        rows.push(<tr key={day.toString()}>{cells}</tr>);
+        cells = [];
+      }
+    });
+
+    return <tbody>{rows}</tbody>;
+  };
+
+  // Check if date is in current month
+  const isSameMonth = (date1, date2) => {
+    return date1.getMonth() === date2.getMonth() && 
+           date1.getFullYear() === date2.getFullYear();
+  };
+
   // Group customers by status
   const incompleteCustomers = customers.filter((c) => c.status === "incomplete");
   const pendingCustomers = customers.filter((c) => c.status === "pending");
   const completeCustomers = customers.filter((c) => c.status === "completed" || c.status === "complete");
+
+  // Custom day renderer for the calendar
+  const renderCalendarDay = (day, selectedDay, isOutsideMonth) => {
+    if (!day || !isValid(day)) return null;
+    
+    const dayAppointments = getDayAppointments(day);
+    const hasAppointments = dayAppointments.length > 0;
+    
+    // Check if this day is tomorrow (for highlighting Bob's meeting)
+    const isTomorrow = isSameDay(day, addDays(new Date(), 1));
+    const hasBobMeeting = dayAppointments.some(apt => apt.client?.includes("Bob"));
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className={`relative flex items-center justify-center h-8 w-8 p-0 rounded-full mx-auto cursor-pointer
+                ${selectedDay && isSameDay(day, selectedDay) ? 'bg-primary text-primary-foreground' : ''}
+                ${isOutsideMonth ? 'text-muted-foreground opacity-50' : ''}
+                ${isTomorrow && hasBobMeeting ? 'ring-2 ring-orange-500' : ''}
+                ${hasAppointments ? 'font-bold' : ''}`}
+              onClick={() => setDate(day)}
+            >
+              {format(day, 'd')}
+              {hasAppointments && (
+                <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                  <div className="flex space-x-0.5">
+                    {dayAppointments.map((apt, i) => (
+                      <div 
+                        key={i} 
+                        className={`h-1.5 w-1.5 rounded-full 
+                          ${apt.type === 'checkup' ? 'bg-blue-500' : 
+                            apt.type === 'review' ? 'bg-green-500' : 'bg-purple-500'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </TooltipTrigger>
+          {hasAppointments && (
+            <TooltipContent>
+              <div className="p-1">
+                {dayAppointments.map((apt, i) => (
+                  <div key={i} className="text-sm py-0.5">
+                    {apt.title}
+                  </div>
+                ))}
+              </div>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -159,7 +315,14 @@ export default function Dashboard() {
                       {customer.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {customer.date ? format(new Date(customer.date), "PPP") : "N/A"}
+                      {customer.date ? (() => {
+                        try {
+                          const customerDate = new Date(customer.date);
+                          return isValid(customerDate) ? format(customerDate, "PPP") : "N/A";
+                        } catch {
+                          return "N/A";
+                        }
+                      })() : "N/A"}
                     </p>
                   </div>
                   <div
@@ -171,7 +334,7 @@ export default function Dashboard() {
                         : "text-green-500"
                     }`}
                   >
-                    {customer.status.toUpperCase()}
+                    {customer.status?.toUpperCase() || "UNKNOWN"}
                   </div>
                 </div>
               ))}
@@ -252,26 +415,104 @@ export default function Dashboard() {
 
         {/* Right Column - Calendar */}
         <div className="col-span-1 flex flex-col gap-6">
-          {/* <Card 
+          <Card 
             className={`transition-all duration-500 delay-400 ${panelsAnimated ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}
           >
             <CardHeader>
-              <CardTitle>Assistance Requested - Calendar</CardTitle>
+              <CardTitle className="flex items-center">
+                <CalendarIcon className="mr-2 h-5 w-5" />
+                Upcoming Appointments
+              </CardTitle>
               <CardDescription>
-                Color intensity shows number of requests
+                Your schedule for the coming days
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md border"
-                dayCounts={dailyCounts}
-                getGradientColor={getGradientColor}
-              />
+              {/* Custom Calendar Implementation */}
+              <div className="w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={prevMonth}
+                    className="h-7 w-7 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <h2 className="text-center font-medium">
+                    {format(currentMonth, 'MMMM yyyy')}
+                  </h2>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={nextMonth}
+                    className="h-7 w-7 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                        <th key={day} className="text-xs font-medium text-center py-2">
+                          {day}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  {generateCalendarDays()}
+                </table>
+              </div>
+              
+              {/* Upcoming meetings section */}
+              <div className="mt-4 space-y-3">
+                <h3 className="font-medium text-sm">Next appointments:</h3>
+                {appointments
+                  .filter(apt => {
+                    try {
+                      const appointmentDate = new Date(apt.date);
+                      return isValid(appointmentDate) && appointmentDate >= new Date();
+                    } catch (error) {
+                      return false;
+                    }
+                  })
+                  .sort((a, b) => {
+                    try {
+                      return new Date(a.date) - new Date(b.date);
+                    } catch (error) {
+                      return 0;
+                    }
+                  })
+                  .slice(0, 3)
+                  .map((apt, i) => (
+                    <div 
+                      key={i} 
+                      className={`p-2 rounded-md text-sm border-l-4 
+                        ${apt.client?.includes("Bob") ? 'border-orange-500 bg-orange-50 dark:bg-orange-950' : 
+                          apt.type === 'review' ? 'border-green-500 bg-green-50 dark:bg-green-950' : 
+                          'border-blue-500 bg-blue-50 dark:bg-blue-950'}`}
+                    >
+                      <div className="font-medium flex justify-between">
+                        <span>{apt.title}</span>
+                        <span className="text-xs opacity-70">
+                          {(() => {
+                            try {
+                              const appointmentDate = new Date(apt.date);
+                              return isValid(appointmentDate) ? format(appointmentDate, "MMM d") : "N/A";
+                            } catch {
+                              return "N/A";
+                            }
+                          })()}
+                        </span>
+                      </div>
+                      <div className="text-xs mt-1 opacity-80">{apt.client}</div>
+                    </div>
+                  ))}
+              </div>
             </CardContent>
-          </Card> */}
+          </Card>
         </div>
       </div>
       
