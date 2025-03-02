@@ -1,7 +1,8 @@
 import requests
 import os
 from dotenv import load_dotenv
-
+import vapi_get_call as vgC
+import json
 load_dotenv()
 # Your Vapi API Authorization token
 auth_token = os.environ['VITE_VAPI_API_KEY']
@@ -29,7 +30,7 @@ data = {
     },
 }
 
-def get_last_call():
+def get_last_call(id):
     # Make the POST request to Vapi to create the phone call
     response = requests.get(
         f'https://api.vapi.ai/call', headers=headers, json=data)
@@ -66,15 +67,24 @@ def get_last_call():
     monitor
     transport
     '''
-        return res[0]
-        # for i in res:
-        #     print(i['id'])
-        #     try:
-        #         print(i['transcript'])
-        #     except:
-        #         pass
+    
+        # return res[0]
+        
+        for i in res:
+            
+            policynum = vgC.extract_policy_number(i)
+            print(id,policynum,id==policynum)
+            
+            if policynum==id.strip():
+                print(id)
+                return json.dumps(i['analysis']['summary'].strip('\n'))
+                # break
+            # try:
+            #     print(i['transcript'])
+            # except:
+            #     pass
     else:
         print('Failed to create call')
         print(response.text)
-
-print((get_last_call()))
+        return json.dumps("No records matching policy number found")
+# print((get_last_call('12345678')))

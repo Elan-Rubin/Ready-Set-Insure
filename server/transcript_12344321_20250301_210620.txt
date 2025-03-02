@@ -1,0 +1,11 @@
+Insurance Policy Number: 12344321
+
+Conversation Transcript:
+--------------------------------------------------
+AI: Hey. This is Sarah from Ready, Set, Insure. This service is for registered customers only. To get started, please provide your insurance number. If you don't have it handy, please share your full name and date of birth so we can verify your details.
+User: It's 1 2 3 4 4 3 2 1.
+AI: Thank you for providing your policy number. Could you please also provide your full name for verification purposes?
+User: It's Jainam Kashyap.
+AI: Thank you, Janem Kashyap. To better assist you, could you briefly describe the issue you're facing Is it related to claims, policy changes, billing, or something else?
+
+--------------------------------------------------
