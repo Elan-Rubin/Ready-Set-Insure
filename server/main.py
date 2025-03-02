@@ -285,3 +285,118 @@ Python main.py
 Python3 main.py 
 
 '''
+
+
+@app.route("/GetClientByPolicyNumber", methods=["POST"])
+def GetClientByPolicyNumber():
+    """
+    Sample Request:
+    {
+        "policy_number": "12345678"
+    }
+    """
+    try:
+        data = request.json
+        policy_number = data.get("policy_number")
+
+        if not policy_number:
+            return jsonify({"error": "Policy number is required"}), 400
+
+        # Find the client by policy number
+        client = mongo.db.clients.find_one({"policy_number": policy_number})
+
+        if not client:
+            return jsonify({"error": "Client not found"}), 404
+
+        # Convert ObjectId to string for JSON serialization
+        client["_id"] = str(client["_id"])
+
+        return jsonify({"client": client}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve client: {str(e)}"}), 500
+
+@app.route("/UpdateClientSummary", methods=["POST"])
+def UpdateClientSummary():
+    """
+    Sample Request:
+    {
+        "policy_number": "12345678",
+        "summary": "Client called regarding policy renewal..."
+    }
+    """
+    try:
+        data = request.json
+        policy_number = data.get("policy_number")
+        summary = data.get("summary")
+
+        if not policy_number:
+            return jsonify({"error": "Policy number is required"}), 400
+
+        # Find the client by policy number
+        client = mongo.db.clients.find_one({"policy_number": policy_number})
+
+        if not client:
+            return jsonify({"error": "Client not found"}), 404
+
+        # Update client's summary
+        mongo.db.clients.update_one(
+            {"policy_number": policy_number},
+            {"$set": {"summary": summary}}
+        )
+
+        return jsonify({"message": "Summary updated successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to update summary: {str(e)}"}), 500
+
+@app.route("/UpdateClientChatlog", methods=["POST"])
+def UpdateClientChatlog():
+    """
+    Sample Request:
+    {
+        "policy_number": "12345678",
+        "message": "Hello, I need assistance with my policy.",
+        "sender": "client" // or "assistant"
+    }
+    """
+    try:
+        data = request.json
+        policy_number = data.get("policy_number")
+        message = data.get("message")
+        sender = data.get("sender")
+
+        if not all([policy_number, message, sender]):
+            return jsonify({"error": "Policy number, message, and sender are required"}), 400
+
+        # Find the client by policy number
+        client = mongo.db.clients.find_one({"policy_number": policy_number})
+
+        if not client:
+            return jsonify({"error": "Client not found"}), 404
+
+        # Get existing chatlog or initialize new one
+        try:
+            chatlog = json.loads(client.get("chatlog", "[]"))
+        except json.JSONDecodeError:
+            chatlog = []
+
+        # Add new message
+        new_message = {
+            "id": len(chatlog) + 1,
+            "message": message,
+            "sender": sender,
+            "timestamp": datetime.now().isoformat()
+        }
+        chatlog.append(new_message)
+
+        # Update client's chatlog
+        mongo.db.clients.update_one(
+            {"policy_number": policy_number},
+            {"$set": {"chatlog": json.dumps(chatlog)}}
+        )
+
+        return jsonify({"message": "Chatlog updated successfully", "chatlog": chatlog}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to update chatlog: {str(e)}"}), 500
