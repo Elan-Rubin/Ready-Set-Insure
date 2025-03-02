@@ -18,7 +18,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [callHistory, setCallHistory] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
-
+  const [analysis, setCall] = useState<any[]>([]);
   // Fetch customer data based on policy number
   useEffect(() => {
     const fetchCustomerData = async () => {
@@ -78,7 +78,24 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const getSender = (messageId: number) => {
     return messageId % 2 === 1 ? "Ready Set Assistant" : userData?.name || "Customer";
   };
-
+  useEffect(() => {
+          async function fetchCall() {
+            try {
+              const response = await fetch(`http://localhost:5000/getcall/${params.policyNumber}`);
+              const data = await response.json();
+              if (response.ok) {
+                console.log(data);
+                setCall(data);
+              } else {
+                console.error("Failed to fetch customers:", data.error);
+              }
+            } catch (error) {
+              console.error("Error fetching customers:", error);
+            }
+          }
+      
+          fetchCall();
+        }, []);
   // Handle sending a new message
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -226,8 +243,8 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         <div className="w-1/3 border-r flex flex-col p-4">
           <h2 className="text-xl font-bold mb-4">Summary</h2>
           <div className="flex-1 overflow-auto mb-4">
-            {userData.summary ? (
-              <p className="text-muted-foreground">{userData.summary}</p>
+            {analysis ? (
+              <p className="text-muted-foreground">{analysis}</p>
             ) : (
               <p className="text-muted-foreground">No summary available yet.</p>
             )}

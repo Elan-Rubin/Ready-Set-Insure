@@ -18,6 +18,8 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const [callHistory, setCallHistory] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [summary, setSummary] = useState("");
+  const [analysis, setCall] = useState([]);
+  // Function to determine sender based on message ID
 
   // Fetch customer data based on policy number
   useEffect(() => {
@@ -78,6 +80,24 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
   const getSender = (messageId: number) => {
     return messageId % 2 === 1 ? "Ready Set Assistant" : userData?.name || "Customer";
   };
+      // Fetch clients from the backend
+  useEffect(() => {
+        async function fetchCall() {
+          try {
+            const response = await fetch("http://localhost:5000/getcall");
+            const data = await response.json();
+            if (response.ok) {
+              setCall(data.analysis.summary);
+            } else {
+              console.error("Failed to fetch customers:", data.error);
+            }
+          } catch (error) {
+            console.error("Error fetching customers:", error);
+          }
+        }
+    
+        fetchCall();
+      }, []);
 
   // Handle sending a new message
   const handleSendMessage = async () => {
@@ -149,6 +169,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
     );
   }
 
+
   return (
     <div className="flex flex-col h-screen">
       <div className="bg-secondary p-4 flex items-center">
@@ -216,7 +237,7 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
                   </p>
                 </>
               )}
-              <p className="text-sm text-muted-foreground">Sex: {userData.sex || "N/A"}</p>
+              <p className="text-sm text-muted-foreground">Gender: {userData.sex || "N/A"}</p>
               <p className="text-sm text-muted-foreground">Phone: {userData.phone || "N/A"}</p>
             </div>
           </div>
@@ -226,10 +247,10 @@ export default function CustomerPage({ params }: { params: { policyNumber: strin
         <div className="w-1/3 border-r flex flex-col p-4">
           <h2 className="text-xl font-bold mb-4">Summary</h2>
           <div className="flex-1 overflow-auto mb-4">
-            {userData.summary ? (
-              <p className="text-muted-foreground">{userData.summary}</p>
+            {analysis ? (
+              <p className="text-muted-foreground">Test</p>
             ) : (
-              <p className="text-muted-foreground">No summary available yet.</p>
+              <p className="text-muted-foreground">No summary available.</p>
             )}
           </div>
           
