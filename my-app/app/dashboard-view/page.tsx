@@ -1,69 +1,64 @@
-"use client";
+"use client"
 
-import React, { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Users } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from "recharts";
+import React, { useEffect, useState } from "react"
+import Link from 'next/link'
+import { format } from "date-fns"
+import { Users } from "lucide-react"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/card"
 
 export default function Dashboard() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [customers, setCustomers] = useState([]);
-  const [barChartData, setBarChartData] = useState([]);
+  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [customers, setCustomers] = useState([])
+  const [barChartData, setBarChartData] = useState([])
 
   // Fetch clients from the backend
   useEffect(() => {
     async function fetchCustomers() {
       try {
-        const response = await fetch("http://localhost:5000/GetAllClients");
-        const data = await response.json();
+        const response = await fetch("http://localhost:5000/GetAllClients")
+        const data = await response.json()
         if (response.ok) {
-          setCustomers(data.users);
-          updateBarChartData(data.users);
+          setCustomers(data.users)
+          updateBarChartData(data.users)
         } else {
-          console.error("Failed to fetch customers:", data.error);
+          console.error("Failed to fetch customers:", data.error)
         }
       } catch (error) {
-        console.error("Error fetching customers:", error);
+        console.error("Error fetching customers:", error)
       }
     }
 
-    fetchCustomers();
-  }, []);
+    fetchCustomers()
+  }, [])
 
   // Update Bar Chart Data
   function updateBarChartData(customersData) {
-    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     const newBarChartData = daysOfWeek.map((day) => ({
       name: day,
       total: customersData.filter((customer) => {
-        const customerDate = new Date(customer.date);
-        return daysOfWeek[customerDate.getDay()] === day;
+        const customerDate = new Date(customer.date)
+        return daysOfWeek[customerDate.getDay()] === day
       }).length,
-    }));
-    setBarChartData(newBarChartData);
+    }))
+    setBarChartData(newBarChartData)
   }
 
   // Group customers by status
-  const incompleteCustomers = customers.filter((c) => c.status === "incomplete");
-  const pendingCustomers = customers.filter((c) => c.status === "pending");
-  const completeCustomers = customers.filter((c) => c.status === "completed");
+  const incompleteCustomers = customers.filter((c) => c.status === "incomplete")
+  const pendingCustomers = customers.filter((c) => c.status === "pending")
+  const completeCustomers = customers.filter((c) => c.status === "completed")
 
   return (
     <div className="p-6 space-y-6">
@@ -76,13 +71,19 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Customer Assistance</CardTitle>
             <CardDescription className="text-red-500">
-              {incompleteCustomers.length} customer(s) need assistance
+              {incompleteCustomers.length}{" "}
+              {incompleteCustomers.length === 1 ? "customer" : "customers"} need
+              assistance
             </CardDescription>
             <CardDescription className="text-yellow-500">
-              {pendingCustomers.length} customer(s) are receiving assistance
+              {pendingCustomers.length}{" "}
+              {pendingCustomers.length === 1 ? "customer" : "customers"} are
+              receiving assistance
             </CardDescription>
             <CardDescription className="text-green-500">
-              {completeCustomers.length} customer(s) completed assistance
+              {completeCustomers.length}{" "}
+              {completeCustomers.length === 1 ? "customer" : "customers"}{" "}
+              completed assistance
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -103,20 +104,26 @@ export default function Dashboard() {
                       {customer.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {customer.date ? format(new Date(customer.date), "PPP") : "N/A"}
+                      {customer.date
+                        ? format(new Date(customer.date), "PPP")
+                        : "N/A"}
                     </p>
                   </div>
-                  <div
-                    className={`ml-auto font-medium ${
-                      customer.status === "incomplete"
-                        ? "text-red-500"
+                    <Button variant="link" className="p-0 ml-auto" asChild>
+                    <Link href={`/customer-view/${customer.policy_number}`}>
+                      <span
+                      className={`ml-2 font-medium underline ${
+                        customer.status === "incomplete"
+                        ? "text-red-500 underline-red-500"
                         : customer.status === "pending"
-                        ? "text-yellow-500"
-                        : "text-green-500"
-                    }`}
-                  >
-                    {customer.status}
-                  </div>
+                        ? "text-yellow-500 underline-yellow-500"
+                        : "text-green-500 underline-green-500"
+                      }`}
+                      >
+                      {customer.status}
+                      </span>
+                    </Link>
+                    </Button>
                 </div>
               ))}
             </div>
@@ -127,7 +134,9 @@ export default function Dashboard() {
         <div className="col-span-1 flex flex-col gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Customers
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -143,46 +152,46 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={barChartData}>
                   <XAxis
-                  dataKey="name"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
+                    dataKey="name"
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
                   />
                   <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}`}
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}`}
                   />
                   <Bar
-                  dataKey="total"
-                  radius={[4, 4, 0, 0]}
-                  shape={(props) => {
-                    const { x, y, width, height, value } = props;
+                    dataKey="total"
+                    radius={[4, 4, 0, 0]}
+                    shape={(props) => {
+                      const { x, y, width, height, value } = props
 
-                    // Find min and max values
-                    const values = barChartData.map((item) => item.total);
-                    const minValue = Math.min(...values);
-                    const maxValue = Math.max(...values);
+                      // Find min and max values
+                      const values = barChartData.map((item) => item.total)
+                      const minValue = Math.min(...values)
+                      const maxValue = Math.max(...values)
 
-                    // Get the color based on value
-                    const stroke = getGradientColor(value, minValue, maxValue);
+                      // Get the color based on value
+                      const stroke = getGradientColor(value, minValue, maxValue)
 
-                    return (
-                    <rect
-                      x={x}
-                      y={y}
-                      width={width}
-                      height={height}
-                      fill="transparent"
-                      stroke={stroke}
-                      strokeWidth={3}
-                      radius={[4, 4, 0, 0]}
-                    />
-                    );
-                  }}
+                      return (
+                        <rect
+                          x={x}
+                          y={y}
+                          width={width}
+                          height={height}
+                          fill="transparent"
+                          stroke={stroke}
+                          strokeWidth={3}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      )
+                    }}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -207,16 +216,16 @@ export default function Dashboard() {
                 className="rounded-md border"
               />
             </CardContent>
-            <CardContent>
+            {/* <CardContent>
               <Button variant="outline" className="w-full">
                 {date ? format(date, "PPP") : "Pick a date"}
               </Button>
-            </CardContent>
+            </CardContent> */}
           </Card>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function getGradientColor(value, minValue, maxValue) {
