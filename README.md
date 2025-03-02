@@ -1,8 +1,13 @@
 # Ready, Set, Insure - AI Voice Agent for Insurance Companies
 
-## CodeFest 2025
+## Philadelphia CodeFest 2025
 
-![Ready Set Insure](./image.png)
+##Contributers
+- Jainam
+- Logan
+- Shams
+- Elan
+- Chi
 
 ## Overview
 
@@ -38,10 +43,10 @@ Creating a robust voice AI assistant involves replicating complex human conversa
 ```bash
 # Clone the Repository
 git clone https://github.com/your-repo/ready-set-insure.git
-cd ready-set-insure
+cd repo
 
 # Set Up the Backend (Flask API)
-pip install -r requirements.txt
+cd server
 python main.py
 
 # Run the Frontend (Next.js)
