@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
+import { useRouter } from "next/navigation"; // Import Next.js router
 import {
   Bar,
   BarChart,
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [customers, setCustomers] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
+  const router = useRouter(); // Initialize router
 
   // Fetch clients from the backend
   useEffect(() => {
@@ -60,10 +62,15 @@ export default function Dashboard() {
     setBarChartData(newBarChartData);
   }
 
+  // Handle navigation to customer detail page
+  const navigateToCustomerDetail = (policyNumber) => {
+    router.push(`/customer/${policyNumber}`);
+  };
+
   // Group customers by status
   const incompleteCustomers = customers.filter((c) => c.status === "incomplete");
   const pendingCustomers = customers.filter((c) => c.status === "pending");
-  const completeCustomers = customers.filter((c) => c.status === "completed");
+  const completeCustomers = customers.filter((c) => c.status === "completed" || c.status === "complete");
 
   return (
     <div className="p-6 space-y-6">
@@ -88,7 +95,11 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-8">
               {customers.map((customer, index) => (
-                <div key={index} className="flex items-center">
+                <div 
+                  key={index} 
+                  className="flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded transition-colors duration-200" 
+                  onClick={() => navigateToCustomerDetail(customer.policy_number)}
+                >
                   <Avatar className="h-9 w-9">
                     <AvatarImage
                       src="/placeholder.svg?height=32&width=32"
