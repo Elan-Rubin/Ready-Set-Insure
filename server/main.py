@@ -4,6 +4,7 @@ from flask_pymongo import PyMongo                   #pip install flask-pymongo
 #pip install flask-jwt-extended
 from dotenv import load_dotenv
 import os
+import git_stuff.codefest_2025.server.vapi_get_first_call as vgc
 
 app = Flask(__name__)
 CORS(app)
@@ -85,9 +86,10 @@ def LoginEmployee():
     
 
 
-
-
-
+@app.route('/getcall',methods=['POST','GET'])
+def get_call():
+    data = vgc.get_last_call()
+    return jsonify(data)
 
 
 
